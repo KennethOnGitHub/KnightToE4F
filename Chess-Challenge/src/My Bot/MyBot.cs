@@ -187,7 +187,8 @@ public class MyBot : IChessBot
             {-15,  36,  12, -54,   8, -28,  24,  14 }
         };
 
-        int[][,] tableList = {
+        //yea u can optimise tf out of this uwu :3 (ill do it laterrr)
+        int[][,] whiteTableList = {
             pawnPSTable,
             knightPSTable,
             bishopPSTable,
@@ -195,13 +196,17 @@ public class MyBot : IChessBot
             queenPSTable,
             kingPSTable
         };
+        Array.Reverse(whiteTableList);
+        int[][,] blackTableList = whiteTableList; //this is the sloppist code ive written HOLYYYYYYY SHITEEEEEEEE
+        Array.Reverse(whiteTableList);
+
 
 
         PieceList[] pieceListList = board.GetAllPieceLists(); //shitass af
         int whiteTotalPSScore = 0;
         foreach (PieceList pieceList in pieceListList.Take(6))
         {
-            int[,] currentTable = tableList[(int)pieceList.TypeOfPieceInList - 1];
+            int[,] currentTable = whiteTableList[(int)pieceList.TypeOfPieceInList - 1];
             foreach (Piece piece in pieceList)
             {
                 whiteTotalPSScore += currentTable[piece.Square.Rank, piece.Square.File];
@@ -210,12 +215,14 @@ public class MyBot : IChessBot
         int blackTotalPSScore = 0;
         foreach (PieceList pieceList in pieceListList.Skip(6).Take(6))
         {
-            int[,] currentTable = tableList[(int)pieceList.TypeOfPieceInList - 1];
+            int[,] currentTable = blackTableList[(int)pieceList.TypeOfPieceInList - 1];
             foreach (Piece piece in pieceList)
             {
                 blackTotalPSScore += currentTable[piece.Square.Rank, piece.Square.File];
             }
         }
+
+        
 
         return board.IsWhiteToMove ? whiteTotalPSScore-blackTotalPSScore : blackTotalPSScore - whiteTotalPSScore;
     }
