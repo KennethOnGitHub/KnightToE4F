@@ -2,12 +2,15 @@ using ChessChallenge;
 using ChessChallenge.API;
 using ChessChallenge.Application;
 using ChessChallenge.Chess;
+using System.ComponentModel;
 
 namespace MyBotTest
 {
     [TestClass]
     public class EvaluateTestss
     {
+        //TODO:
+        //CLEAN UP TESTS SO NEW TESTS ARE EASIER TO MAKE AND IT LOOKS A LITTLE NICE
         [TestMethod]
         public void CalculateMaterialAdvantage_Position1_0()
         {
@@ -67,6 +70,30 @@ namespace MyBotTest
             int eval = bot.NegaMax(board, 0, int.MinValue, int.MaxValue, true);
 
             Assert.AreEqual(int.MaxValue, eval);
+        }
+
+        [TestMethod]
+        public void CalculatePieceSquareAdvantage_EmptyBoard_0()
+        {
+            string position = "8/8/8/8/8/8/8/8 w - - 0 1";
+            var bot = new MyBot();
+            var board = ChessChallenge.API.Board.CreateBoardFromFEN(position);
+
+            int advantage = bot.CalculatePieceSquareAdvantage(board);
+
+            Assert.AreEqual(0, advantage);
+        }
+
+        [TestMethod]
+        public void CalculatePieceSquareAdvantage_WhiteAboutToPromote_98()
+        {
+            string position = "8/P7/8/8/8/8/8/8 w - - 0 1";
+            var bot = new MyBot();
+            var board = ChessChallenge.API.Board.CreateBoardFromFEN(position);
+
+            int advantage = bot.CalculatePieceSquareAdvantage(board);
+
+            Assert.AreEqual(98, advantage);
         }
     }
 }
