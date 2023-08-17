@@ -95,5 +95,41 @@ namespace MyBotTest
 
             Assert.AreEqual(98, advantage);
         }
+
+        [TestMethod]
+        public void CalculatePieceSquareAdvantage_BlackAboutToPromote_neg98()
+        {
+            string position = "8/8/8/8/8/8/p7/8 w - - 0 1";
+            var bot = new MyBot();
+            var board = ChessChallenge.API.Board.CreateBoardFromFEN(position);
+
+            int advantage = bot.CalculatePieceSquareAdvantage(board);
+
+            Assert.AreEqual(-98, advantage);
+        }
+
+        [TestMethod]
+        public void CalculatePieceSquareAdvantage_BothAboutToPromote_0()
+        {
+            string position = "8/P7/8/8/8/8/p7/8 w - - 0 1";
+            var bot = new MyBot();
+            var board = ChessChallenge.API.Board.CreateBoardFromFEN(position);
+
+            int advantage = bot.CalculatePieceSquareAdvantage(board);
+
+            Assert.AreEqual(0, advantage);
+        }
+
+        [TestMethod]
+        public void CalculatePieceSquareAdvantage_CentreKnight_()
+        {
+            string position = "8/8/8/8/8/2N2N2/8/8 w - - 0 1";
+            var bot = new MyBot();
+            var board = ChessChallenge.API.Board.CreateBoardFromFEN(position);
+
+            int advantage = bot.CalculatePieceSquareAdvantage(board);
+
+            Assert.AreEqual(29, advantage);
+        }
     }
 }

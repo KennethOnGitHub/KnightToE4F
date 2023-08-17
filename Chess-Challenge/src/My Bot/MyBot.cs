@@ -205,7 +205,7 @@ public class MyBot : IChessBot
             int[,] currentTable = tableList[(int)pieceList.TypeOfPieceInList - 1];
             foreach (Piece piece in pieceList)
             {
-                whiteAdvantage += currentTable[piece.Square.Rank, piece.Square.File];
+                whiteAdvantage += currentTable[Math.Abs(piece.Square.Rank - 7), piece.Square.File];
             }
         }
 
@@ -214,7 +214,7 @@ public class MyBot : IChessBot
             int[,] currentTable = tableList[(int)pieceList.TypeOfPieceInList - 1];
             foreach (Piece piece in pieceList)
             {
-                whiteAdvantage -= currentTable[Math.Abs(piece.Square.Rank - 7), piece.Square.File];
+                whiteAdvantage -= currentTable[piece.Square.Rank, piece.Square.File];
             }
         }
 
