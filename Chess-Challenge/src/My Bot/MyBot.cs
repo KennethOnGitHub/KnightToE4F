@@ -190,7 +190,10 @@ public class MyBot : IChessBot
             int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
             Piece piece = board.GetPiece(new Square(pieceIndex));
 
-            whiteAdvantage += PSQT[(int)piece.PieceType - 1][piece.IsWhite ? pieceIndex : 63 - pieceIndex] * (piece.IsWhite ? 1:-1);
+            whiteAdvantage +=
+                PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                [piece.IsWhite ? pieceIndex : 63 - pieceIndex] //gets the square of that piece
+                * (piece.IsWhite ? 1:-1); //negates when black
             //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
         }
 
