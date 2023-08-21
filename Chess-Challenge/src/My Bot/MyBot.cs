@@ -29,6 +29,7 @@ public class MyBot : IChessBot
     0xFFFFF0FEECDE9700, 0x23EDF2FCEB00, 0xBF700F1C600, 0xFFFFCA0A10EADF00, 0x7F10FF2EF00, 0xFFFFE3E706F3E400, 0x17E0DAD8ED00, 0xDCDE5EAE900
     };
 
+    //COMPRESSOR
     public MyBot()
     {
         sbyte[,] PSQT = new sbyte[6,64]; //not sure abt the whole 2d array thing tbh, maybe 2 1d arrays would be better? maybe a 3d array? maybe a 1d array of 2d arrays?
