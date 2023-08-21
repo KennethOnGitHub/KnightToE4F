@@ -44,16 +44,16 @@ public class MyBot : IChessBot
     };
 
     //COMPRESSOR
+    private sbyte[][] PSQT;
     public MyBot()
     {
         var compressor = new Compressor();
         compressor.PackScoreData();
 
-        sbyte[][] PSQT = new sbyte[6][]; //not sure abt the whole 2d array thing tbh, maybe 2 1d arrays would be better? maybe a 3d array? maybe a 1d array of 2d arrays?
+        PSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
         for (int pieceType = 0; pieceType < 6; pieceType++)
         {
             PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
-            //PSQT[pieceType, square] = unchecked((sbyte)((PackedTables[63-square] >> (8 * pieceType)) & 0xFF));
             for (int square = 0; square < 64; square++)
             {
                 Console.Write("Type: " + pieceType);
@@ -63,24 +63,7 @@ public class MyBot : IChessBot
                 PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
             }
         }
-
-
     }
-    /*
-    public int DecompressPieceSquareTables(bool isWgit loghite, int rank, int file, PieceType pieceType)
-    {
-        int type = (int)pieceType - 1;
-        ulong bytemask = 0xFF;
-
-        if (isWhite)
-        {
-            rank = 7 - rank; //flips for white, as the 7th index of the table corresponds to the 0th rank
-        }
-        sbyte unpackedData = unchecked((sbyte)((PackedTables[rank, file] >> (8 * type)) & bytemask));
-
-        
-        return unpackedData;
-    }*/
 
     public Move Think(Board board, Timer timer)
     {
@@ -178,89 +161,7 @@ public class MyBot : IChessBot
 
     public int CalculatePieceSquareAdvantage(Board board)  //shitass af fix later!!!
     {
-        //the use of 2d arrays will have to be replaced in the future, in favour of string? ulong?
-        int[,] pawnPSTable = new int[8, 8] //the 8s could be removed to reduce token count? 
-        {
-            {0,   0,   0,   0,   0,   0,  0,   0},
-            {98, 134,  61,  95,  68, 126, 34, -11},
-            {-6,   7,  26,  31,  65,  56, 25, -20},
-            {-14,  13,   6,  21,  23,  12, 17, -23},
-            {-27,  -2,  -5,  12,  17,   6, 10, -25},
-            {-26,  -4,  -4, -10,   3,   3, 33, -12},
-            {-35,  -1, -20, -23, -15,  24, 38, -22},
-            { 0,   0,   0,   0,   0,   0,  0,   0},
-        };
-
-        int[,] knightPSTable = new int[8, 8]
-        {
-            {-167, -89, -34, -49,  61, -97, -15, -107},
-            {-73, -41,  72,  36,  23,  62,   7,  -17},
-            {-47,  60,  37,  65,  84, 129,  73,   44},
-            {-9,  17,  19,  53,  37,  69,  18,   22},
-            {-13,   4,  16,  13,  28,  19,  21,   -8},
-            {-23,  -9,  12,  10,  19,  17,  25,  -16},
-            {-29, -53, -12,  -3,  -1,  18, -14,  -19 },
-            {-105, -21, -58, -33, -17, -28, -19,  -23 },
-        };
-
-        int[,] bishopPSTable = new int[8, 8]
-        {
-            {-29,   4, -82, -37, -25, -42,   7,  -8},
-            {-26,  16, -18, -13,  30,  59,  18, -47 },
-            {-16,  37,  43,  40,  35,  50,  37,  -2 },
-            {-4,   5,  19,  50,  37,  37,   7,  -2 },
-            {-6,  13,  13,  26,  34,  12,  10,   4 },
-            {0,  15,  15,  15,  14,  27,  18,  10 },
-            {4,  15,  16,   0,   7,  21,  33,   1 },
-            {-33,  -3, -14, -21, -13, -12, -39, -21 }
-        };
-
-        int[,] rookPSTable = new int[8, 8]
-        {
-            {32,  42,  32,  51, 63,  9,  31,  43 },
-            {27,  32,  58,  62, 80, 67,  26,  44},
-            {-5,  19,  26,  36, 17, 45,  61,  16 },
-            {-24, -11,   7,  26, 24, 35,  -8, -20 },
-            { -36, -26, -12,  -1,  9, -7,   6, -23 },
-            {-45, -25, -16, -17,  3,  0,  -5, -33 },
-            {-44, -16, -20,  -9, -1, 11,  -6, -71 },
-            {-19, -13,   1,  17, 16,  7, -37, -26 }
-        };
-
-        int[,] queenPSTable = new int[8, 8]
-        {
-            {-28,   0,  29,  12,  59,  44,  43,  45 },
-            {-24, -39,  -5,   1, -16,  57,  28,  54 },
-            {-13, -17,   7,   8,  29,  56,  47,  57 },
-            {-27, -27, -16, -16,  -1,  17,  -2,   1 },
-            { -9, -26,  -9, -10,  -2,  -4,   3,  -3 },
-            {-14,   2, -11,  -2,  -5,   2,  14,   5 },
-            { -35,  -8,  11,   2,   8,  15,  -3,   1 },
-            {-1, -18,  -9,  10, -15, -25, -31, -50 }
-        };
-
-        int[,] kingPSTable = new int[8, 8]
-        {
-            {-65,  23,  16, -15, -56, -34,   2,  13 },
-            {29,  -1, -20,  -7,  -8,  -4, -38, -29 },
-            {-9,  24,   2, -16, -20,   6,  22, -22 },
-            {-17, -20, -12, -27, -30, -25, -14, -36 },
-            {-49,  -1, -27, -39, -46, -44, -33, -51 },
-            { -14, -14, -22, -46, -44, -30, -15, -27 },
-            {1,   7,  -8, -64, -43, -16,   9,   8 },
-            {-15,  36,  12, -54,   8, -28,  24,  14 }
-        };
-
-        //yea u can optimise tf out of this uwu :3 (ill do it laterrr)
-        int[][,] tableList = {
-            pawnPSTable,
-            knightPSTable,
-            bishopPSTable,
-            rookPSTable,
-            queenPSTable,
-            kingPSTable
-        };
-
+        /*
         PieceList[] pieceListList = board.GetAllPieceLists(); //shitass af
 
         int whiteAdvantage = 0;
@@ -280,9 +181,18 @@ public class MyBot : IChessBot
             {
                 whiteAdvantage -= currentTable[piece.Square.Rank, piece.Square.File];
             }
+        }*/
+
+        int whiteAdvantage = 0;
+        ulong bitboard = board.AllPiecesBitboard;
+        while (bitboard != 0) //learnt this trick from tyrant <3
+        {
+            int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
+            Piece piece = board.GetPiece(new Square(pieceIndex));
+
+            whiteAdvantage += PSQT[(int)piece.PieceType - 1][piece.IsWhite ? pieceIndex : 63 - pieceIndex] * (piece.IsWhite ? 1:-1);
+            //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
         }
-
-
 
         return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
     }

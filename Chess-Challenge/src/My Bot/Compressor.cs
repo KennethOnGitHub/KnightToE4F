@@ -104,7 +104,7 @@ public class Compressor
                 sbyte[] thisSet = allScores[set];
                 //packedData[square] = ((ulong)thisSet[square]) << (8 * set);
                 packedData[square] |= (ulong)(thisSet[square] & 0xFF) << (8 * set);
-
+                // a |= b is the same as a = a|b. we are shifting the new data that will be added to the right, then doing bitwise or
             }
         }
         string output = "{";
