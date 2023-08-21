@@ -192,7 +192,7 @@ public class MyBot : IChessBot
 
             whiteAdvantage +=
                 PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
-                [piece.IsWhite ? pieceIndex : 63 - pieceIndex] //gets the square of that piece
+                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex/8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
                 * (piece.IsWhite ? 1:-1); //negates when black
             //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
         }
