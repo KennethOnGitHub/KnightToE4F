@@ -2,6 +2,7 @@ using ChessChallenge.API;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
@@ -82,7 +83,7 @@ public class Compressor
         -65,  23,  16, -15, -56, -34,   2,  13,
     };
     
-     private void PackScoreData()
+     public void PackScoreData()
      {
         //Add boards from "index" 0 upwards. Here, the pawn board is "index" 0.
         //That means it will occupy the least significant byte in the packed data.
@@ -95,23 +96,32 @@ public class Compressor
         allScores.Add(queenPSTable);
         allScores.Add(kingPSTable);
 
-        int i = 0;
-
         ulong[] packedData = new ulong[64];
-        for (int rank = 0; rank < 8; rank++)
+        for (int square  = 0; square < 64; square++)
         {
-            for (int file = 0; file < 8; file++)
+            for (int set = 0; set < 6; set++)
             {
-                for (int set = 0; set < 6; set++)
-                {
-                    sbyte[] thisSet = allScores[set];
-                    packedData[i] = ((ulong)thisSet[i]) << (8 * set);
-                    i++;
-                }
+                sbyte[] thisSet = allScores[set];
+                //packedData[square] = ((ulong)thisSet[square]) << (8 * set);
+                packedData[square] |= (ulong)(thisSet[square] & 0xFF) << (8 * set);
+
+            }
+        }
+        string output = "{";
+        for (int square = 0; square < 64; square ++)
+        {
+            output = output + packedData[square].ToString();
+            output = output + ", ";
+            if ((square + 1) % 8 == 0)
+            {
+                output = output + "\n";
             }
             
         }
-        Console.WriteLine(packedData);
+        output = output + "}";
+
+        Console.WriteLine(output);
+
      }
 
 }

@@ -11,12 +11,14 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks.Sources;
 
+
 public class MyBot : IChessBot
 {
     int baseMaxDepth = 4;
     int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
     bool botIsWhite;
 
+    /*
     public ulong[] PackedTables =
     {
     0xFFFFBEE41FE28000, 0x17002A03A700, 0x101D1FADDE00, 0xFFFFF10C32DACF00, 0xFFFFC83B3EE73D00, 0xFFFFDE2C08D59F00, 0x22B1F06F100, 0xD2D2AF79500,
@@ -27,22 +29,45 @@ public class MyBot : IChessBot
     0xFFFFF1F1D2FFE8E6, 0xFFFFF201E70EF6FC, 0xFFFFE9F4F00F0BFC, 0xFFFFD1FDEF0F09F6, 0xFFFFD3FB030E1303, 0xFFFFE202001B1103, 0xFFFFF10DFB121921, 0xFFFFE504DF09EFF4,
     0xDCD403E2DD, 0x6F7F00ECAFF, 0xFFFFF80AEC0FF3EC, 0xFFFFC001F6FFFCE9, 0xFFFFD507FF06FEF1, 0xFFFFF00F0B151218, 0x8FCFA20F226, 0x800B900ECEA,
     0xFFFFF0FEECDE9700, 0x23EDF2FCEB00, 0xBF700F1C600, 0xFFFFCA0A10EADF00, 0x7F10FF2EF00, 0xFFFFE3E706F3E400, 0x17E0DAD8ED00, 0xDCDE5EAE900
+    }; */
+
+    public ulong[] compressedTables =
+    {
+        266081509807872, 40608714320640, 14255029143040, 222144599154432, 9831464562432, 251680922067968, 27358335200512, 16281800272128,
+        2052256490461, 8765760850943, 272730088862956, 211118966504937, 234234615169009, 263947401105944, 10986427904550, 8803491900906,
+        267124736059878, 266094280439804, 258342015405308, 231992374266614, 234174553133827, 248498219585795, 265046644103457, 251813379633396,
+        228663471305701, 281367167173886, 252853114179835, 239654865079564, 231988516756497, 234182975165190, 245204079219978, 226490419837159,
+        263770735441906, 260472402415885, 269311748018950, 252819394409749, 249585249625367, 254060790105356, 267176896827921, 241900829153001,
+        272627275977210, 27415097457671, 2229527061786, 263917757022495, 259609585734721, 6838346219320, 24392145127705, 257530819128556,
+        32882737723234, 281308010960767, 260563769641021, 273783746405471, 273711019988804, 277322871291518, 239814231328546, 249821819695093,
+        210986525229056, 25289472386816, 17717288427008, 265034711944960, 220156800744704, 244280724987648, 2384227463424, 14487662400768,
     };
 
     //COMPRESSOR
     public MyBot()
     {
-        sbyte[,] PSQT = new sbyte[6,64]; //not sure abt the whole 2d array thing tbh, maybe 2 1d arrays would be better? maybe a 3d array? maybe a 1d array of 2d arrays?
-        for (int square = 0; square < 64; square++)
+        var compressor = new Compressor();
+        compressor.PackScoreData();
+
+        sbyte[][] PSQT = new sbyte[6][]; //not sure abt the whole 2d array thing tbh, maybe 2 1d arrays would be better? maybe a 3d array? maybe a 1d array of 2d arrays?
+        for (int pieceType = 0; pieceType < 6; pieceType++)
         {
-            for (int pieceType = 0; pieceType < 6; pieceType++)
+            PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
+            //PSQT[pieceType, square] = unchecked((sbyte)((PackedTables[63-square] >> (8 * pieceType)) & 0xFF));
+            for (int square = 0; square < 64; square++)
             {
-                PSQT[pieceType, square] = unchecked((sbyte)((PackedTables[63-square] >> (8 * pieceType)) & 0xFF));
+                Console.Write("Type: " + pieceType);
+                Console.Write(" |Square: " + square + " | ");
+                Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));
+
+                PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
             }
         }
+
+
     }
     /*
-    public int DecompressPieceSquareTables(bool isWhite, int rank, int file, PieceType pieceType)
+    public int DecompressPieceSquareTables(bool isWgit loghite, int rank, int file, PieceType pieceType)
     {
         int type = (int)pieceType - 1;
         ulong bytemask = 0xFF;
