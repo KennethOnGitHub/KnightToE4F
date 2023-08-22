@@ -54,32 +54,48 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
-        botIsWhite = IsOurTurn(board);
-
+        bool isWhite = IsWhite(board);
         Move[] allmoves = board.GetLegalMoves();
-        Move bestmove = allmoves[0];
-        int bestMoveAdvantage = int.MinValue;
+        Move bestMove = allmoves[0];
+        bestmove = iterativeDeepening(board, bestmove, 0, int.MinValue, int.MaxValue, isWhite);
 
-        foreach (Move move in allmoves)
-        {
-            board.MakeMove(move);
-            int moveAdvantage = -NegaMax(board, 0, int.MinValue, int.MaxValue, false);
-            board.UndoMove(move);
-            Console.WriteLine("Advantage: " + moveAdvantage);
-            if (moveAdvantage > bestMoveAdvantage)
-            {
-                bestMoveAdvantage = moveAdvantage;
-                bestmove = move;
-            }
-        }
-        Console.WriteLine("Best Advantage: " + bestMoveAdvantage);
         return bestmove;
     }
 
-    private bool IsOurTurn(Board board)
+    private bool IsWhite(Board board)
     {
         return board.IsWhiteToMove;
     }
+
+    //iterative deepening pseudo:
+    // 1ply search
+    // play move
+    // get time taken for move to be found
+    // use this time as avg for each move, and thus how deep the bot can go for next move (how much time it gets basically)
+    // add time taken to variable, to avg it out (possibly let the first few moves not have iterative deepening to get a better avg?)
+    // repeat
+
+    public Move iterativeDeepening(Board board, Move bestMove, int currentDepth, int alpha, int beta, bool ourTurn)
+    {
+        
+        baseMaxDepth = 1; //do a 1ply search first
+        Timer moveTimer;
+
+        //int eval = -NegaMax(board, currentDepth, alpha, beta, ourTurn);
+
+        int searchTime = moveTimer.MillisecondsRemaining / 30; //30 is arbitary, but essentially we allow ourselves 1/30th of time left to search. Possibly we could replace 30 with the move index? so first move has 1/50th of time, however this is counter-intuitive as moves actually take less time as the game progresses (generally)  
+        
+        if (moveTimer.MillisecondsElapsedThisTurn > searchTime)
+        {
+            return bestMove;
+        }
+
+
+        //NOT TOUCHING THIS WITH A 7FT POLE JUST YET, AFAIK IT WOULD REQUIRE A REWRITE OF NEGAMAX + PROBABLY OTHER SHIT TO GET IT FUNCTIONAL, WILL CHECK WITH TREE THO :£
+
+    }
+
+
 
 
     public int NegaMax(Board board, int currentDepth, int alpha, int beta, bool ourTurn)
