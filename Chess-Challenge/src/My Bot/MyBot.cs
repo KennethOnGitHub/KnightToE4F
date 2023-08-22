@@ -14,22 +14,9 @@ using System.Threading.Tasks.Sources;
 
 public class MyBot : IChessBot
 {
-    int baseMaxDepth = 4;
+    int baseMaxDepth = 5;
     int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
     bool botIsWhite;
-
-    /*
-    public ulong[] PackedTables =
-    {
-    0xFFFFBEE41FE28000, 0x17002A03A700, 0x101D1FADDE00, 0xFFFFF10C32DACF00, 0xFFFFC83B3EE73D00, 0xFFFFDE2C08D59F00, 0x22B1F06F100, 0xD2D2AF79500,
-    0x1CE81AE5B762, 0xFFFFFED9200FD77F, 0xFFFFEBFB39EE483D, 0xFFFFF9013DF3245F, 0xFFFFF7F0501E1744, 0xFFFFFC39433B3E7E, 0xFFFFDA1C1A120722, 0xFFFFE3362BD0EEF5,
-    0xFFFFF6F2FAEFD0FA, 0x17EF13253C07, 0x2071A2B251A, 0xFFFFF0082428411F, 0xFFFFEC1D11235441, 0x6382D327F38, 0x162F3D254919, 0xFFFFEA390FFE2BEC,
-    0xFFFFEEE4E7FBF6F2, 0xFFFFEBE4F505110D, 0xFFFFF3F007131306, 0xFFFFE4F01A323515, 0xFFFFE1FF18252517, 0xFFFFE7112325450C, 0xFFFFF1FDF8071211, 0xFFFFDC00EBFE15E9,
-    0xFFFFCEF6DBF9F2E5, 0xFFFFFEE5E60D03FE, 0xFFFFE4F6F40D0FFB, 0xFFFFD8F5FF1A0D0C, 0xFFFFD1FE09221C11, 0xFFFFD3FBF90C1306, 0xFFFFDF03060A150A, 0xFFFFCCFCE903F7E7,
-    0xFFFFF1F1D2FFE8E6, 0xFFFFF201E70EF6FC, 0xFFFFE9F4F00F0BFC, 0xFFFFD1FDEF0F09F6, 0xFFFFD3FB030E1303, 0xFFFFE202001B1103, 0xFFFFF10DFB121921, 0xFFFFE504DF09EFF4,
-    0xDCD403E2DD, 0x6F7F00ECAFF, 0xFFFFF80AEC0FF3EC, 0xFFFFC001F6FFFCE9, 0xFFFFD507FF06FEF1, 0xFFFFF00F0B151218, 0x8FCFA20F226, 0x800B900ECEA,
-    0xFFFFF0FEECDE9700, 0x23EDF2FCEB00, 0xBF700F1C600, 0xFFFFCA0A10EADF00, 0x7F10FF2EF00, 0xFFFFE3E706F3E400, 0x17E0DAD8ED00, 0xDCDE5EAE900
-    }; */
 
     public ulong[] compressedTables =
     {
@@ -159,30 +146,8 @@ public class MyBot : IChessBot
 
     }
 
-    public int CalculatePieceSquareAdvantage(Board board)  //shitass af fix later!!!
+    public int CalculatePieceSquareAdvantage(Board board)
     {
-        /*
-        PieceList[] pieceListList = board.GetAllPieceLists(); //shitass af
-
-        int whiteAdvantage = 0;
-        foreach (PieceList pieceList in pieceListList.Take(6))
-        {
-            int[,] currentTable = tableList[(int)pieceList.TypeOfPieceInList - 1];
-            foreach (Piece piece in pieceList)
-            {
-                whiteAdvantage += currentTable[Math.Abs(piece.Square.Rank - 7), piece.Square.File];
-            }
-        }
-
-        foreach (PieceList pieceList in pieceListList.Skip(6).Take(6))
-        {
-            int[,] currentTable = tableList[(int)pieceList.TypeOfPieceInList - 1];
-            foreach (Piece piece in pieceList)
-            {
-                whiteAdvantage -= currentTable[piece.Square.Rank, piece.Square.File];
-            }
-        }*/
-
         int whiteAdvantage = 0;
         ulong bitboard = board.AllPiecesBitboard;
         while (bitboard != 0) //learnt this trick from tyrant <3
@@ -199,33 +164,4 @@ public class MyBot : IChessBot
 
         return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
     }
-
-    private int CalculateDevelopmentIncrease(Move move)
-    {
-        int startCentreness = CalculateCentredness(move.StartSquare);
-        int targetCentreness = CalculateCentredness(move.TargetSquare);
-
-        int initialDevelopment = startCentreness;
-        int newDevelopment = targetCentreness;
-        //Currently, development is only calculated based on how "central" the pieces are, it does not take the piece into account
-
-        return newDevelopment - initialDevelopment;
-    }
-
-    private int CalculateCentredness(Square square)
-    {
-        int rankMiddleness = (int)(3.5 - Math.Abs(square.Rank - 3.5)); //Closeness to the middle in terms of ranks
-        int fileMiddleness = (int)(3.5 - Math.Abs(square.File - 3.5)); //Closeness to middle in terms of files
-
-        int Centreness = rankMiddleness * fileMiddleness;
-        /*Things closest to the centre have the highest centreness. Multiplying the values gives the highest difference in centreness when moving into the centre.
-         This makes the calculations for development increase work better as the AI will choose to develop pieces into the centre as that gives the greatest development
-         incresase. 
-        Previously, using addition lead it to sometimes developing pieces on the edge of the board as moving two spaces forwards increases development by the same amount 
-        as moving a piece in the middle to the centre*/
-        //Issue? The AI will never develop pieces on the leftmost and rightmost side of the board, as the increase in development score is 0.
-
-        return Centreness;
-    }
-
 }
