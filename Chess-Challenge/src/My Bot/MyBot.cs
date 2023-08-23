@@ -14,9 +14,7 @@ using System.Threading.Tasks.Sources;
 
 public class MyBot : IChessBot
 {
-    int baseMaxDepth = 5;
     int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
-    bool botIsWhite;
 
     public ulong[] compressedTables =
     {
@@ -56,10 +54,9 @@ public class MyBot : IChessBot
     {
         bool isWhite = IsWhite(board);
         Move[] allmoves = board.GetLegalMoves();
-        Move bestMove = allmoves[0];
-        bestmove = iterativeDeepening(board, bestmove, 0, int.MinValue, int.MaxValue, isWhite);
+        Move bestMove = iterativeDeepening(board, timer, 0, isWhite);
 
-        return bestmove;
+        return bestMove;
     }
 
     private bool IsWhite(Board board)
@@ -75,52 +72,59 @@ public class MyBot : IChessBot
     // add time taken to variable, to avg it out (possibly let the first few moves not have iterative deepening to get a better avg?)
     // repeat
 
-    public Move iterativeDeepening(Board board, Move bestMove, int currentDepth, int alpha, int beta, bool ourTurn)
+    public Move iterativeDeepening(Board board, Timer moveTimer, int currentDepth, bool ourTurn )
     {
-        
-        baseMaxDepth = 1; //do a 1ply search first
-        Timer moveTimer;
 
-        //int eval = -NegaMax(board, currentDepth, alpha, beta, ourTurn);
-
-        int searchTime = moveTimer.MillisecondsRemaining / 30; //30 is arbitary, but essentially we allow ourselves 1/30th of time left to search. Possibly we could replace 30 with the move index? so first move has 1/50th of time, however this is counter-intuitive as moves actually take less time as the game progresses (generally)  
-        
-        if (moveTimer.MillisecondsElapsedThisTurn > searchTime)
-        {
-            return bestMove;
-        }
-
-
-        //NOT TOUCHING THIS WITH A 7FT POLE JUST YET, AFAIK IT WOULD REQUIRE A REWRITE OF NEGAMAX + PROBABLY OTHER SHIT TO GET IT FUNCTIONAL, WILL CHECK WITH TREE THO :£
-
-    }
-
-
-
-
-    public int NegaMax(Board board, int currentDepth, int alpha, int beta, bool ourTurn)
-    {
-        Move[] moves = board.GetLegalMoves();
+        int baseMaxDepth = 1; //do a 1ply search first
+        Move[] allMoves = board.GetLegalMoves();
+        Move bestMove = allMoves[0];
+        int bestMoveAdvantage = int.MinValue;
 
         if (board.IsInCheckmate())
         {
-            return int.MinValue + 1; //bit scuffed, the +1 prevents overflow when it is multiplied by -1
+            return bestMove; //idk what to do here lmfao
         }
         if (board.IsDraw())
         {
-            return 0;
+            return bestMove; //also idk what to do here lmfao
         }
-        if (currentDepth == baseMaxDepth)
+
+        foreach (Move move in allMoves)
+        {
+
+            baseMaxDepth++;
+            board.MakeMove(move);
+            int moveAdvantage = -SearchFunc(board, moveTimer, currentDepth + 1, int.MinValue, int.MaxValue, false);
+            board.UndoMove(move);
+
+            if (moveAdvantage > bestMoveAdvantage)
+            {
+                bestMoveAdvantage = moveAdvantage;
+                bestMove = move;
+            } 
+        }
+        return bestMove;
+
+    }
+
+    public int SearchFunc(Board board, Timer moveTimer, int currentDepth, int alpha, int beta, bool ourTurn)
+    {
+        int totalTimeUsed = 0;
+        totalTimeUsed += moveTimer.MillisecondsRemaining;
+        int searchTime = totalTimeUsed / 30; //30 is arbitary, but essentially we allow ourselves 1/30th of time left to search. Possibly we could replace 30 with the move index? so first move has 1/50th of time, however this is counter-intuitive as moves actually take less time as the game progresses (generally)  
+
+        if (moveTimer.MillisecondsElapsedThisTurn > searchTime)
         {
             return CalculateAdvantage(board);
         }
 
+        Move[] moves = board.GetLegalMoves();
         int bestEval = int.MinValue;
         foreach (Move move in moves)
         {
             //things to note here is that use -NegaMax to get eval, and we dont figure out the value of beta (not sure if this one is intentional but wikipedia calls for it)
             board.MakeMove(move);
-            bestEval = Math.Max(bestEval, -NegaMax(board, currentDepth + 1, -beta, -alpha, !ourTurn));
+            bestEval = Math.Max(bestEval, -SearchFunc(board, moveTimer, currentDepth + 1, -beta, -alpha, !ourTurn));
             board.UndoMove(move);
             alpha = Math.Max(alpha, bestEval);
             if (alpha >= beta)
