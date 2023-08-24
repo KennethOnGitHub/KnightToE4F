@@ -41,9 +41,10 @@ public class MyBot : IChessBot
             PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
             for (int square = 0; square < 64; square++)
             {
+                /*
                 Console.Write("Type: " + pieceType);
                 Console.Write(" |Square: " + square + " | ");
-                Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));
+                Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));*/
 
                 PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
             }
@@ -54,7 +55,7 @@ public class MyBot : IChessBot
     {
         bool isWhite = IsWhite(board);
         Move[] allmoves = board.GetLegalMoves();
-        Move bestMove = IterativeDeepening(board, timer, isWhite);
+        Move bestMove = IterativeDeepening(board, timer);
 
         return bestMove;
     }
@@ -74,34 +75,43 @@ public class MyBot : IChessBot
     int startTime = 0;
     bool timeout = false;
 
-    public Move IterativeDeepening(Board board, Timer moveTimer, bool ourTurn )
+    public Move IterativeDeepening(Board board, Timer moveTimer)
     {
         Move[] allMoves = board.GetLegalMoves();
         Move bestMove = allMoves[0];
-        startTime = moveTimer.MillisecondsElapsedThisTurn;
-        int moveAdvantage = 0;
         int bestMoveAdvantage = 0;
+        startTime = moveTimer.MillisecondsElapsedThisTurn;
+        Console.WriteLine("START TIME: " + startTime);
+        //int moveAdvantage = 0;
 
-        foreach (Move move in allMoves)
+        int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
+        timeout = false;
+        
+        while (true)
         {
-            if (timeout)
+            foreach (Move move in allMoves)
             {
-                return bestMove;
+                if (timeout)
+                {
+                    return bestMove; 
+                }
+                board.MakeMove(move);
+                int moveAdvantage = -NegaMax(board, moveTimer, searchDepth, int.MinValue, int.MaxValue);
+                board.UndoMove(move);
+                if (moveAdvantage > bestMoveAdvantage)
+                {
+                    Console.WriteLine("FOUND NEW BEST MOVE");
+                    bestMoveAdvantage = moveAdvantage;
+                    bestMove = move;
+                }
             }
-            board.MakeMove(move);
-             moveAdvantage = -NegaMax(board, moveTimer, 0, int.MinValue, int.MaxValue, ourTurn);
-            board.UndoMove(move);
-            if (moveAdvantage > bestMoveAdvantage)
-            {
-                bestMoveAdvantage = moveAdvantage;
-                bestMove = move;
-            }
-        }
-        return bestMove;
+            //Console.WriteLine("SEARCH DEPTH:" + searchDepth);
+            searchDepth++;
 
+        }
     }
 
-    public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta, bool ourTurn)
+    public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta)
     {        
         int moveTime = 500; //arbitary value 
         if (moveTimer.MillisecondsElapsedThisTurn - startTime > moveTime)
@@ -120,7 +130,7 @@ public class MyBot : IChessBot
         foreach (Move move in allMoves)
         {
             board.MakeMove(move);
-            bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth + 1, -beta, -alpha, !ourTurn));
+            bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
             board.UndoMove(move);
             alpha = Math.Max(alpha, bestEval);
 
