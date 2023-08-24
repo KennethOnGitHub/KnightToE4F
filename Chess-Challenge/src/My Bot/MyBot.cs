@@ -54,6 +54,7 @@ public class MyBot : IChessBot
 
     public Move Think(Board board, Timer timer)
     {
+        Console.WriteLine("STARTED THINK");
         bool isWhite = IsWhite(board);
         Move[] allmoves = board.GetLegalMoves();
         Move bestMove = IterativeDeepening(board, timer);
@@ -73,16 +74,13 @@ public class MyBot : IChessBot
     // use this time as avg for each move, and thus how deep the bot can go for next move (how much time it gets basically)
     // add time taken to variable, to avg it out (possibly let the first few moves not have iterative deepening to get a better avg?)
     // repeat
-    int startTime = 0;
     bool timeout = false;
 
     public Move IterativeDeepening(Board board, Timer moveTimer)
     {
         Move[] allMoves = board.GetLegalMoves();
         Move bestMove = allMoves[0];
-        int bestMoveAdvantage = 0;
-        startTime = moveTimer.MillisecondsElapsedThisTurn;
-        Console.WriteLine("START TIME: " + startTime);
+        int bestMoveAdvantage = int.MinValue;
         //int moveAdvantage = 0;
 
         int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
@@ -94,6 +92,7 @@ public class MyBot : IChessBot
             {
                 if (timeout)
                 {
+                    Console.WriteLine(bestMoveAdvantage);
                     return bestMove; 
                 }
                 board.MakeMove(move);
@@ -106,7 +105,7 @@ public class MyBot : IChessBot
                     bestMove = move;
                 }
             }
-            //Console.WriteLine("SEARCH DEPTH:" + searchDepth);
+            Console.WriteLine("SEARCH DEPTH:" + searchDepth);
             searchDepth++;
 
         }
@@ -114,8 +113,8 @@ public class MyBot : IChessBot
 
     public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta)
     {        
-        int moveTime = 500; //arbitary value 
-        if (moveTimer.MillisecondsElapsedThisTurn - startTime > moveTime)
+        int moveTime = 1000; //arbitary value 
+        if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
         {
             timeout = true;
             return alpha;
@@ -146,10 +145,9 @@ public class MyBot : IChessBot
 
             if (alpha >= beta)
             {
-                Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
+                //Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
                 break;
             }
-            Console.WriteLine("DIDN'T PRUNE");
         }
         return bestEval;
     }
