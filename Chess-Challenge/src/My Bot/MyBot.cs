@@ -97,7 +97,7 @@ public class MyBot : IChessBot
                     return bestMove; 
                 }
                 board.MakeMove(move);
-                int moveAdvantage = -NegaMax(board, moveTimer, searchDepth, int.MinValue, int.MaxValue);
+                int moveAdvantage = -NegaMax(board, moveTimer, searchDepth, int.MinValue, int.MaxValue - 1);
                 board.UndoMove(move);
                 if (moveAdvantage > bestMoveAdvantage)
                 {
@@ -121,13 +121,22 @@ public class MyBot : IChessBot
             return alpha;
         }
 
+        if (board.IsInCheckmate())
+        {
+            return int.MinValue + 1;
+        }
+        if (board.IsDraw())
+        {
+            return 0;
+        }
+
         if (currentDepth == 0)
         {
             return CalculateAdvantage(board);
         }
 
         Move[] allMoves = board.GetLegalMoves();
-        int bestEval = int.MaxValue;
+        int bestEval = int.MinValue;
         foreach (Move move in allMoves)
         {
             board.MakeMove(move);
