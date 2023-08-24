@@ -54,7 +54,7 @@ public class MyBot : IChessBot
     {
         bool isWhite = IsWhite(board);
         Move[] allmoves = board.GetLegalMoves();
-        Move bestMove = iterativeDeepening(board, timer, 0, isWhite);
+        Move bestMove = IterativeDeepening(board, timer, isWhite);
 
         return bestMove;
     }
@@ -71,70 +71,65 @@ public class MyBot : IChessBot
     // use this time as avg for each move, and thus how deep the bot can go for next move (how much time it gets basically)
     // add time taken to variable, to avg it out (possibly let the first few moves not have iterative deepening to get a better avg?)
     // repeat
+    int startTime = 0;
+    bool timeout = false;
 
-    public Move iterativeDeepening(Board board, Timer moveTimer, int currentDepth, bool ourTurn )
+    public Move IterativeDeepening(Board board, Timer moveTimer, bool ourTurn )
     {
-
-        int baseMaxDepth = 1; //do a 1ply search first
         Move[] allMoves = board.GetLegalMoves();
         Move bestMove = allMoves[0];
-        int bestMoveAdvantage = int.MinValue;
-
-        if (board.IsInCheckmate())
-        {
-            return bestMove; //idk what to do here lmfao
-        }
-        if (board.IsDraw())
-        {
-            return bestMove; //also idk what to do here lmfao
-        }
+        startTime = moveTimer.MillisecondsElapsedThisTurn;
+        int moveAdvantage = 0;
+        int bestMoveAdvantage = 0;
 
         foreach (Move move in allMoves)
         {
-
-            baseMaxDepth++;
+            if (timeout)
+            {
+                return bestMove;
+            }
             board.MakeMove(move);
-            int moveAdvantage = -SearchFunc(board, moveTimer, currentDepth + 1, int.MinValue, int.MaxValue, false);
+             moveAdvantage = -NegaMax(board, moveTimer, 0, int.MinValue, int.MaxValue, ourTurn);
             board.UndoMove(move);
-
             if (moveAdvantage > bestMoveAdvantage)
             {
                 bestMoveAdvantage = moveAdvantage;
                 bestMove = move;
-            } 
+            }
         }
         return bestMove;
 
     }
 
-    public int SearchFunc(Board board, Timer moveTimer, int currentDepth, int alpha, int beta, bool ourTurn)
-    {
-        int totalTimeUsed = 0;
-        totalTimeUsed += moveTimer.MillisecondsRemaining;
-        int searchTime = totalTimeUsed / 30; //30 is arbitary, but essentially we allow ourselves 1/30th of time left to search. Possibly we could replace 30 with the move index? so first move has 1/50th of time, however this is counter-intuitive as moves actually take less time as the game progresses (generally)  
+    public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta, bool ourTurn)
+    {        
+        int moveTime = 500; //arbitary value 
+        if (moveTimer.MillisecondsElapsedThisTurn - startTime > moveTime)
+        {
+            timeout = true;
+            return alpha;
+        }
 
-        if (moveTimer.MillisecondsElapsedThisTurn > searchTime)
+        if (currentDepth == 0)
         {
             return CalculateAdvantage(board);
         }
 
-        Move[] moves = board.GetLegalMoves();
-        int bestEval = int.MinValue;
-        foreach (Move move in moves)
+        Move[] allMoves = board.GetLegalMoves();
+        int bestEval = int.MaxValue;
+        foreach (Move move in allMoves)
         {
-            //things to note here is that use -NegaMax to get eval, and we dont figure out the value of beta (not sure if this one is intentional but wikipedia calls for it)
             board.MakeMove(move);
-            bestEval = Math.Max(bestEval, -SearchFunc(board, moveTimer, currentDepth + 1, -beta, -alpha, !ourTurn));
+            bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth + 1, -beta, -alpha, !ourTurn));
             board.UndoMove(move);
             alpha = Math.Max(alpha, bestEval);
+
             if (alpha >= beta)
             {
                 break;
             }
-
         }
-
-        return bestEval;
+        return alpha;
     }
 
     public int CalculateAdvantage(Board board)
