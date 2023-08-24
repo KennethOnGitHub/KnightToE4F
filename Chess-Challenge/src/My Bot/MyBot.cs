@@ -10,6 +10,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks.Sources;
+using System.Xml.Linq;
 
 
 public class MyBot : IChessBot
@@ -136,10 +137,12 @@ public class MyBot : IChessBot
 
             if (alpha >= beta)
             {
+                Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
                 break;
             }
+            Console.WriteLine("DIDN'T PRUNE");
         }
-        return alpha;
+        return bestEval;
     }
 
     public int CalculateAdvantage(Board board)
