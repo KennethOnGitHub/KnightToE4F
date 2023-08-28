@@ -55,7 +55,6 @@ public class MyBot : IChessBot
     public Move Think(Board board, Timer timer)
     {
         Console.WriteLine("STARTED THINK");
-        Move[] allmoves = board.GetLegalMoves();
         Move bestMove = IterativeDeepening(board, timer);
 
         return bestMove;
@@ -67,7 +66,7 @@ public class MyBot : IChessBot
     public Move IterativeDeepening(Board board, Timer moveTimer)
     {
         Move[] allMoves = board.GetLegalMoves();
-        Move bestMove = allMoves[0];
+        Move bestMove = allMoves[0]; //big problemo, storing it here means that it will sometimes use a shitass 2 depth move over a 4 or 5 depth move because the 2 depth one had a higher advantage score
         int bestMoveAdvantage = int.MinValue;
 
         int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
@@ -75,6 +74,7 @@ public class MyBot : IChessBot
         
         while (true)
         {
+            Console.WriteLine("STARTING SEARCH DEPTH:" + searchDepth);
             foreach (Move move in allMoves)
             {
                 if (timeout)
@@ -92,7 +92,7 @@ public class MyBot : IChessBot
                     bestMove = move;
                 }
             }
-            Console.WriteLine("SEARCH DEPTH:" + searchDepth);
+
             searchDepth++;
 
         }
@@ -116,7 +116,7 @@ public class MyBot : IChessBot
             return 0;
         }
 
-        if (currentDepth == 0)
+        if (currentDepth == 0) //not perfect, this means a search depth of 1 leads to 2ply search
         {
             return CalculateAdvantage(board);
         }
