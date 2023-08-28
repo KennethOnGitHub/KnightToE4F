@@ -55,25 +55,13 @@ public class MyBot : IChessBot
     public Move Think(Board board, Timer timer)
     {
         Console.WriteLine("STARTED THINK");
-        bool isWhite = IsWhite(board);
         Move[] allmoves = board.GetLegalMoves();
         Move bestMove = IterativeDeepening(board, timer);
 
         return bestMove;
     }
 
-    private bool IsWhite(Board board)
-    {
-        return board.IsWhiteToMove;
-    }
 
-    //iterative deepening pseudo:
-    // 1ply search
-    // play move
-    // get time taken for move to be found
-    // use this time as avg for each move, and thus how deep the bot can go for next move (how much time it gets basically)
-    // add time taken to variable, to avg it out (possibly let the first few moves not have iterative deepening to get a better avg?)
-    // repeat
     bool timeout = false;
 
     public Move IterativeDeepening(Board board, Timer moveTimer)
@@ -81,7 +69,6 @@ public class MyBot : IChessBot
         Move[] allMoves = board.GetLegalMoves();
         Move bestMove = allMoves[0];
         int bestMoveAdvantage = int.MinValue;
-        //int moveAdvantage = 0;
 
         int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
         timeout = false;
@@ -117,7 +104,7 @@ public class MyBot : IChessBot
         if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
         {
             timeout = true;
-            return alpha;
+            return alpha; //is this correct?
         }
 
         if (board.IsInCheckmate())
@@ -172,13 +159,6 @@ public class MyBot : IChessBot
         int materialAdvantage = board.IsWhiteToMove ? whiteMaterialAdvantage : blackMaterialAdvantage;
 
         return materialAdvantage;
-    }
-
-    private int CalculatePositionalAdvantage(Board board) //Refactor this and material advantage due to reused code
-    {
-
-        return 0;
-
     }
 
     public int CalculatePieceSquareAdvantage(Board board)
