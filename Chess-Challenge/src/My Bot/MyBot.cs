@@ -67,7 +67,6 @@ public class MyBot : IChessBot
     {
         Move[] allMoves = board.GetLegalMoves();
         Move bestMove = allMoves[0]; //big problemo, storing it here means that it will sometimes use a shitass 2 depth move over a 4 or 5 depth move because the 2 depth one had a higher advantage score
-        int bestMoveAdvantage = int.MinValue;
 
         int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
         timeout = false;
@@ -75,6 +74,8 @@ public class MyBot : IChessBot
         while (true)
         {
             Console.WriteLine("STARTING SEARCH DEPTH:" + searchDepth);
+            int bestMoveAdvantage = int.MinValue;
+            Move tempBestMove = allMoves[0]; //the best move so far for this search, but this is may not be the true best move as we have not finished searching yet
             foreach (Move move in allMoves)
             {
                 if (timeout)
@@ -89,10 +90,11 @@ public class MyBot : IChessBot
                 {
                     Console.WriteLine("FOUND NEW BEST MOVE");
                     bestMoveAdvantage = moveAdvantage;
-                    bestMove = move;
+                    tempBestMove = move;
                 }
             }
 
+            bestMove = tempBestMove; //only once we have finished searching a layer will we update the best move, as we can be sure it is actually better
             searchDepth++;
 
         }
