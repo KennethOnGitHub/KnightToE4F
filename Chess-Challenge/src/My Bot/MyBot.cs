@@ -17,6 +17,8 @@ public class MyBot : IChessBot
 {
     int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
 
+    int debug_negaMaxCalledCount = 0;
+
     public ulong[] compressedTables =
     {
         266081509807872, 40608714320640, 14255029143040, 222144599154432, 9831464562432, 251680922067968, 27358335200512, 16281800272128,
@@ -55,8 +57,11 @@ public class MyBot : IChessBot
     public Move Think(Board board, Timer timer)
     {
         Console.WriteLine("STARTED THINK");
+        debug_negaMaxCalledCount = 0;
+
         Move bestMove = IterativeDeepening(board, timer);
 
+        Console.WriteLine(debug_negaMaxCalledCount);
         return bestMove;
     }
 
@@ -75,7 +80,8 @@ public class MyBot : IChessBot
         {
             Console.WriteLine("STARTING SEARCH DEPTH:" + searchDepth);
             int bestMoveAdvantage = int.MinValue;
-            Move tempBestMove = allMoves[0]; //the best move so far for this search, but this is may not be the true best move as we have not finished searching yet
+            Move tempBestMove = allMoves[0];   //temp best move so far for this search, but this is may not be the true best move as we have not finished searching yet.
+            
             foreach (Move move in allMoves)
             {
                 if (timeout)
@@ -101,7 +107,9 @@ public class MyBot : IChessBot
     }
 
     public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta)
-    {        
+    {
+        debug_negaMaxCalledCount += 1;
+
         int moveTime = 1000; //arbitary value 
         if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
         {
