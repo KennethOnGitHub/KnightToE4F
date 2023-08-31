@@ -71,7 +71,7 @@ public class MyBot : IChessBot
     public Move IterativeDeepening(Board board, Timer moveTimer)
     {
         Move[] allMoves = board.GetLegalMoves();
-        Move bestMove = allMoves[0]; //big problemo, storing it here means that it will sometimes use a shitass 2 depth move over a 4 or 5 depth move because the 2 depth one had a higher advantage score
+        Move bestMove = allMoves[0];
 
         int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
         timeout = false;
