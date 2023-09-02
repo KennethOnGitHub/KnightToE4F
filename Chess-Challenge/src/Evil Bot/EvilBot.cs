@@ -1,54 +1,192 @@
 ﻿using ChessChallenge.API;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks.Sources;
+using System.Xml.Linq;
 
-namespace ChessChallenge.Example
+
+public class EvilBot : IChessBot
 {
-    // A simple bot that can spot mate in one, and always captures the most valuable piece it can.
-    // Plays randomly otherwise.
-    public class EvilBot : IChessBot
+    int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
+
+    int debug_negaMaxCalledCount = 0;
+
+    public readonly ulong[] compressedTables =
     {
-        // Piece values: null, pawn, knight, bishop, rook, queen, king
-        int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
+        266081509807872, 40608714320640, 14255029143040, 222144599154432, 9831464562432, 251680922067968, 27358335200512, 16281800272128,
+        2052256490461, 8765760850943, 272730088862956, 211118966504937, 234234615169009, 263947401105944, 10986427904550, 8803491900906,
+        267124736059878, 266094280439804, 258342015405308, 231992374266614, 234174553133827, 248498219585795, 265046644103457, 251813379633396,
+        228663471305701, 281367167173886, 252853114179835, 239654865079564, 231988516756497, 234182975165190, 245204079219978, 226490419837159,
+        263770735441906, 260472402415885, 269311748018950, 252819394409749, 249585249625367, 254060790105356, 267176896827921, 241900829153001,
+        272627275977210, 27415097457671, 2229527061786, 263917757022495, 259609585734721, 6838346219320, 24392145127705, 257530819128556,
+        32882737723234, 281308010960767, 260563769641021, 273783746405471, 273711019988804, 277322871291518, 239814231328546, 249821819695093,
+        210986525229056, 25289472386816, 17717288427008, 265034711944960, 220156800744704, 244280724987648, 2384227463424, 14487662400768,
+    };
 
-        public Move Think(Board board, Timer timer)
+    //COMPRESSOR
+    private sbyte[][] PSQT;
+    public EvilBot()
+    {
+        var compressor = new Compressor();
+        compressor.PackScoreData();
+
+        PSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
+        for (int pieceType = 0; pieceType < 6; pieceType++)
         {
-            Move[] allMoves = board.GetLegalMoves();
+            PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
+            for (int square = 0; square < 64; square++)
+            {
+                /*
+                Console.Write("Type: " + pieceType);
+                Console.Write(" |Square: " + square + " | ");
+                Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));*/
 
-            // Pick a random move to play if nothing better is found
-            Random rng = new();
-            Move moveToPlay = allMoves[rng.Next(allMoves.Length)];
-            int highestValueCapture = 0;
+                PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+            }
+        }
+    }
 
+    public Move Think(Board board, Timer timer)
+    {
+        Console.WriteLine("STARTED THINK");
+        debug_negaMaxCalledCount = 0;
+
+        Move bestMove = IterativeDeepening(board, timer);
+
+        Console.WriteLine(debug_negaMaxCalledCount);
+        return bestMove;
+    }
+
+
+    bool timeout = false;
+
+    public Move IterativeDeepening(Board board, Timer moveTimer)
+    {
+        Move[] allMoves = board.GetLegalMoves();
+        Move bestMove = allMoves[0];
+
+        int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
+        timeout = false;
+        
+        while (true)
+        {
+            Console.WriteLine("STARTING SEARCH DEPTH:" + searchDepth);
+            int bestMoveAdvantage = int.MinValue;
+            Move tempBestMove = allMoves[0];   //temp best move so far for this search, but this is may not be the true best move as we have not finished searching yet.
+            
             foreach (Move move in allMoves)
             {
-                // Always play checkmate in one
-                if (MoveIsCheckmate(board, move))
+                if (timeout)
                 {
-                    moveToPlay = move;
-                    break;
+                    Console.WriteLine(bestMoveAdvantage);
+                    return bestMove; 
                 }
-
-                // Find highest value capture
-                Piece capturedPiece = board.GetPiece(move.TargetSquare);
-                int capturedPieceValue = pieceValues[(int)capturedPiece.PieceType];
-
-                if (capturedPieceValue > highestValueCapture)
+                board.MakeMove(move);
+                int moveAdvantage = -NegaMax(board, moveTimer, searchDepth, int.MinValue, int.MaxValue - 1);
+                board.UndoMove(move);
+                if (moveAdvantage > bestMoveAdvantage)
                 {
-                    moveToPlay = move;
-                    highestValueCapture = capturedPieceValue;
+                    Console.WriteLine("FOUND NEW BEST MOVE");
+                    bestMoveAdvantage = moveAdvantage;
+                    tempBestMove = move;
                 }
             }
 
-            return moveToPlay;
+            bestMove = tempBestMove; //only once we have finished searching a layer will we update the best move, as we can be sure it is actually better
+            searchDepth++;
+
+        }
+    }
+
+    public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta)
+    {
+        debug_negaMaxCalledCount += 1;
+
+        int moveTime = moveTimer.MillisecondsRemaining / 15; //change this based off of the "standard" depth, so that the bot will not run out of time
+        if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
+        {
+            timeout = true;
+            return alpha; //is this correct?
         }
 
-        // Test if this move gives checkmate
-        bool MoveIsCheckmate(Board board, Move move)
+        if (board.IsInCheckmate())
+        {
+            return int.MinValue + 1;
+        }
+        if (board.IsDraw())
+        {
+            return 0;
+        }
+
+        if (currentDepth == 0) //not perfect, this means a search depth of 1 leads to 2ply search
+        {
+            return CalculateAdvantage(board);
+        }
+
+        Move[] allMoves = board.GetLegalMoves();
+        int bestEval = int.MinValue;
+        foreach (Move move in allMoves)
         {
             board.MakeMove(move);
-            bool isMate = board.IsInCheckmate();
+            bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
             board.UndoMove(move);
-            return isMate;
+            alpha = Math.Max(alpha, bestEval);
+
+            if (alpha >= beta)
+            {
+                //Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
+                break;
+            }
         }
+        return bestEval;
+    }
+
+    public int CalculateAdvantage(Board board)
+    {
+        int materialAdvantage = CalculateMaterialAdvantageOfCurrentPlayer(board);
+        int psAdvantage = CalculatePieceSquareAdvantage(board);
+        int boardValue = materialAdvantage + psAdvantage;
+
+        return boardValue;
+    }
+
+    public int CalculateMaterialAdvantageOfCurrentPlayer(Board board)
+    {
+        PieceList[] pieceListList = board.GetAllPieceLists();
+        int whiteMaterialValue = pieceListList.Take(6).Sum(list => list.Count * pieceValues[(int)list.TypeOfPieceInList]); //Sums values of first 6 lists (white pieces)
+        int blackMaterialValue = pieceListList.Skip(6).Take(6).Sum(list => list.Count * pieceValues[(int)list.TypeOfPieceInList]); //Sums up next 6 lists (black pieces)
+
+        int whiteMaterialAdvantage = whiteMaterialValue - blackMaterialValue;
+        int blackMaterialAdvantage = blackMaterialValue - whiteMaterialValue;
+        int materialAdvantage = board.IsWhiteToMove ? whiteMaterialAdvantage : blackMaterialAdvantage;
+
+        return materialAdvantage;
+    }
+
+    public int CalculatePieceSquareAdvantage(Board board)
+    {
+        int whiteAdvantage = 0;
+        ulong bitboard = board.AllPiecesBitboard;
+        while (bitboard != 0) //learnt this trick from tyrant <3
+        {
+            int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
+            Piece piece = board.GetPiece(new Square(pieceIndex));
+
+            whiteAdvantage +=
+                PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex/8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
+                * (piece.IsWhite ? 1:-1); //negates when black
+            //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
+        }
+
+        return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
     }
 }

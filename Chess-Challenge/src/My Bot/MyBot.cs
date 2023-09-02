@@ -110,7 +110,7 @@ public class MyBot : IChessBot
     {
         debug_negaMaxCalledCount += 1;
 
-        int moveTime = 1000; //arbitary value 
+        int moveTime = moveTimer.MillisecondsRemaining / 30; //arbitary value 
         if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
         {
             timeout = true;
