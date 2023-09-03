@@ -143,7 +143,7 @@ public class MyBot : IChessBot
             if (alpha >= beta)
             {
                 //Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
-                break;
+                break; //seen some return beta here, idk why though
             }
         }
         return bestEval;
