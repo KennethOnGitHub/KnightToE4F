@@ -31,8 +31,29 @@ public class MyBot : IChessBot
         210986525229056, 25289472386816, 17717288427008, 265034711944960, 220156800744704, 244280724987648, 2384227463424, 14487662400768,
     };
 
+    public const sbyte EXACT = 0, LOWERBOUND = -1, UPPERBOUND = 1, INVALID = -2;
+    struct Transposition
+    {
+        public Transposition(ulong zHash, int eval, byte d) //Constructor for a transposition
+        {
+            zobristHash = zHash;
+            evaluation = eval;
+            depth = d;
+            flag = INVALID;
+        }
+
+        public ulong zobristHash = 0;
+        public int evaluation = 0;
+        public byte depth = 0;
+        public sbyte flag = INVALID;
+    }
+
+    ulong transpositionTableMask = 0x7FFFFF; //011111111111111111111111 in binary we will bitwise AND the mask and the zobrist hash to lop off all the digits except for the last 23 (in binary), 
+
     //COMPRESSOR
     private sbyte[][] PSQT;
+
+    Transposition[] transpositions;
     public MyBot()
     {
         var compressor = new Compressor();
@@ -52,7 +73,11 @@ public class MyBot : IChessBot
                 PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
             }
         }
+
+        transpositions = new Transposition[transpositionTableMask + 1]; // transpositionTableMask + 1 is 100000000000000000000000 in binary
+
     }
+
 
     public Move Think(Board board, Timer timer)
     {
@@ -109,6 +134,20 @@ public class MyBot : IChessBot
     public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta)
     {
         debug_negaMaxCalledCount += 1;
+
+        ref Transposition transposition = ref transpositions[board.ZobristKey & transpositionTableMask];
+
+        if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
+            && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search
+        {
+            if (transposition.flag == 1) return transposition.evaluation;
+
+            //If the value stored is a lower bound, and we have found that it is greater than beta, cut off (or at least I think this is what we are doing)
+            if (transposition.flag == 2 && transposition.evaluation >= beta) return transposition.evaluation;
+
+            //I have no clue
+            if (transposition.flag == 3 && transposition.evaluation <= alpha) return transposition.evaluation;
+        }
 
         int moveTime = moveTimer.MillisecondsRemaining / 30; //arbitary value 
         if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
