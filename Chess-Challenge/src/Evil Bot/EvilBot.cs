@@ -110,7 +110,7 @@ public class EvilBot : IChessBot
     {
         debug_negaMaxCalledCount += 1;
 
-        int moveTime = moveTimer.MillisecondsRemaining / 15; //change this based off of the "standard" depth, so that the bot will not run out of time
+        int moveTime = moveTimer.MillisecondsRemaining / 30; //change this based off of the "standard" depth, so that the bot will not run out of time
         if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
         {
             timeout = true;

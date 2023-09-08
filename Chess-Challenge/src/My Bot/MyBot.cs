@@ -141,13 +141,13 @@ public class MyBot : IChessBot
         if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
             && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search
         {
-            if (transposition.flag == 1) return transposition.evaluation;
+            if (transposition.flag == EXACT) return transposition.evaluation;
 
             //If the value stored is a lower bound, and we have found that it is greater than beta, cut off (or at least I think this is what we are doing)
-            if (transposition.flag == 2 && transposition.evaluation >= beta) return transposition.evaluation;
+            if (transposition.flag == LOWERBOUND && transposition.evaluation >= beta) return transposition.evaluation;
 
             //I dont fully understand this tbh
-            if (transposition.flag == 3 && transposition.evaluation <= alpha) return transposition.evaluation;
+            if (transposition.flag == UPPERBOUND && transposition.evaluation <= alpha) return transposition.evaluation;
         }
 
         int moveTime = moveTimer.MillisecondsRemaining / 30; //arbitary value 
