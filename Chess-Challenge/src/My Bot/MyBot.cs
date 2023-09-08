@@ -31,7 +31,8 @@ public class MyBot : IChessBot
         210986525229056, 25289472386816, 17717288427008, 265034711944960, 220156800744704, 244280724987648, 2384227463424, 14487662400768,
     };
 
-    public const sbyte EXACT = 0, LOWERBOUND = -1, UPPERBOUND = 1, INVALID = -2;
+    public const sbyte EXACT = 0, LOWERBOUND = -1, UPPERBOUND = 1, INVALID = -2; //this can be refactored to reduce tokens at the cost of readability
+    //not sure why we have INVALID tbh
     struct Transposition
     {
         public Transposition(ulong zHash, int eval, byte d) //Constructor for a transposition
@@ -172,19 +173,32 @@ public class MyBot : IChessBot
 
         Move[] allMoves = board.GetLegalMoves();
         int bestEval = int.MinValue;
+
+        transposition.flag = UPPERBOUND;
+
         foreach (Move move in allMoves)
         {
             board.MakeMove(move);
             bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
             board.UndoMove(move);
-            alpha = Math.Max(alpha, bestEval);
+            if (bestEval > alpha)
+            {
+                alpha = bestEval;
+                transposition.flag = EXACT;
+            }
 
             if (alpha >= beta)
             {
                 //Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
+                transposition.flag = LOWERBOUND;
                 break; //seen some return beta here, idk why though
             }
         }
+
+        transposition.evaluation = bestEval;
+        transposition.zobristHash = board.ZobristKey;
+        transposition.depth = (byte)currentDepth;
+
         return bestEval;
     }
 
