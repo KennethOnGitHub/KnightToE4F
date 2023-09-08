@@ -87,7 +87,7 @@ public class MyBot : IChessBot
 
         Move bestMove = IterativeDeepening(board, timer);
 
-        Console.WriteLine(debug_negaMaxCalledCount);
+        Console.WriteLine("search count: " +  debug_negaMaxCalledCount);
         return bestMove;
     }
 
@@ -146,7 +146,7 @@ public class MyBot : IChessBot
             //If the value stored is a lower bound, and we have found that it is greater than beta, cut off (or at least I think this is what we are doing)
             if (transposition.flag == 2 && transposition.evaluation >= beta) return transposition.evaluation;
 
-            //I have no clue
+            //I dont fully understand this tbh
             if (transposition.flag == 3 && transposition.evaluation <= alpha) return transposition.evaluation;
         }
 
