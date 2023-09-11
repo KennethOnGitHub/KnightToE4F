@@ -139,7 +139,7 @@ public class MyBot : IChessBot
         ref Transposition transposition = ref transpositions[board.ZobristKey & transpositionTableMask];
 
         if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
-            && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search
+            && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search, so its more accurat
         {
             if (transposition.flag == EXACT) return transposition.evaluation;
 
