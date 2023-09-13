@@ -31,22 +31,24 @@ public class MyBot : IChessBot
         210986525229056, 25289472386816, 17717288427008, 265034711944960, 220156800744704, 244280724987648, 2384227463424, 14487662400768,
     };
 
-    public const sbyte EXACT = 0, LOWERBOUND = -1, UPPERBOUND = 1, INVALID = -2; //this can be refactored to reduce tokens at the cost of readability
+    public const byte INVALID = 0, EXACT = 1, LOWERBOUND = 2, UPPERBOUND = 3; //this can be refactored to reduce tokens at the cost of readability
     //not sure why we have INVALID tbh
     struct Transposition
     {
+        /*
         public Transposition(ulong zHash, int eval, byte d) //Constructor for a transposition
         {
             zobristHash = zHash;
             evaluation = eval;
             depth = d;
             flag = INVALID;
-        }
+        }*/
 
-        public ulong zobristHash = 0;
-        public int evaluation = 0;
-        public byte depth = 0;
-        public sbyte flag = INVALID;
+        public ulong zobristHash;
+        public int evaluation;
+        public byte depth;
+        public byte flag;
+        public Move bestMove;
     }
 
     ulong transpositionTableMask = 0x7FFFFF; //011111111111111111111111 in binary we will bitwise AND the mask and the zobrist hash to lop off all the digits except for the last 23 (in binary), 
@@ -112,7 +114,6 @@ public class MyBot : IChessBot
             {
                 if (timeout)
                 {
-                    Console.WriteLine(bestMoveAdvantage);
                     return bestMove; 
                 }
                 board.MakeMove(move);
@@ -125,7 +126,7 @@ public class MyBot : IChessBot
                     tempBestMove = move;
                 }
             }
-
+            Console.WriteLine(bestMoveAdvantage);
             bestMove = tempBestMove; //only once we have finished searching a layer will we update the best move, as we can be sure it is actually better
             searchDepth++;
 
@@ -139,7 +140,7 @@ public class MyBot : IChessBot
         ref Transposition transposition = ref transpositions[board.ZobristKey & transpositionTableMask];
 
         if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
-            && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search, so its more accurat
+            && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search, so its more accurate
         {
             if (transposition.flag == EXACT) return transposition.evaluation;
 
@@ -172,6 +173,11 @@ public class MyBot : IChessBot
         }
 
         Move[] allMoves = board.GetLegalMoves();
+
+        allMoves.OrderByDescending(move => CalculatePriorityOfMove(move, board)); //seen array.sort also used, need to see if that is better
+        //also look into not passing board as arg, am too tired to look at the alternative
+
+        Move bestMove = allMoves[0];
         int bestEval = int.MinValue;
 
         transposition.flag = UPPERBOUND;
@@ -179,9 +185,16 @@ public class MyBot : IChessBot
         foreach (Move move in allMoves)
         {
             board.MakeMove(move);
-            bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
+            //bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
+            int eval = -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha);
+            if (eval > bestEval)
+            {
+                bestEval = eval;
+                bestMove = move;
+            } 
             board.UndoMove(move);
-            if (bestEval > alpha)
+
+            if (bestEval > alpha) //look into reworking this to use Max(), but will have to change flags
             {
                 alpha = bestEval;
                 transposition.flag = EXACT;
@@ -198,8 +211,29 @@ public class MyBot : IChessBot
         transposition.evaluation = bestEval;
         transposition.zobristHash = board.ZobristKey;
         transposition.depth = (byte)currentDepth;
+        transposition.bestMove = bestMove;
 
         return bestEval;
+    }
+
+    public int CalculatePriorityOfMove(Move move, Board board) //We want probably good moves to be checked first for better pruning
+    {
+        board.MakeMove(move);
+
+        int priority = 0;
+
+        Transposition transP = transpositions[board.ZobristKey & transpositionTableMask];
+
+        if (transP.bestMove == move && board.ZobristKey == transP.zobristHash)
+            priority = 10000; //rando big number
+        if (move.IsCapture) priority += pieceValues[(int)move.CapturePieceType - 1] - pieceValues[(int)move.MovePieceType - 1]; //seen elseif used instead, not sure
+
+        //could transposition depth also be used? mayb
+
+        board.UndoMove(move);
+        return priority;
+
+        //optimise this in terms of tokens later
     }
 
     public int CalculateAdvantage(Board board)
