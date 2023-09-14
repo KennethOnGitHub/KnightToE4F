@@ -96,7 +96,7 @@ public class MyBot : IChessBot
 
     bool timeout = false;
 
-    public Move IterativeDeepening(Board board, Timer moveTimer)
+    public Move IterativeDeepening(Board board, Timer moveTimer) //tmrw, remove the told temp best move and add move ordering to here as well to resolve the early cutoff problem
     {
         Move[] allMoves = board.GetLegalMoves();
         Move bestMove = allMoves[0];
@@ -138,7 +138,7 @@ public class MyBot : IChessBot
         debug_negaMaxCalledCount += 1;
 
         ref Transposition transposition = ref transpositions[board.ZobristKey & transpositionTableMask];
-
+        
         if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
             && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search, so its more accurate
         {
