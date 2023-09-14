@@ -59,8 +59,6 @@ public class MyBot : IChessBot
     Transposition[] transpositions;
     public MyBot()
     {
-        var compressor = new Compressor();
-        compressor.PackScoreData();
 
         PSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
         for (int pieceType = 0; pieceType < 6; pieceType++)
