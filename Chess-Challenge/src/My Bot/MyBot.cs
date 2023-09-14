@@ -238,13 +238,26 @@ public class MyBot : IChessBot
 
     public int CalculateAdvantage(Board board)
     {
-        int materialAdvantage = CalculateMaterialAdvantageOfCurrentPlayer(board);
-        int psAdvantage = CalculatePieceSquareAdvantage(board);
-        int boardValue = materialAdvantage + psAdvantage;
+        int whiteAdvantage = 0;
+        ulong bitboard = board.AllPiecesBitboard;
+        while (bitboard != 0) //learnt this trick from tyrant <3
+        {
+            int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
+            Piece piece = board.GetPiece(new Square(pieceIndex));
 
-        return boardValue;
+            whiteAdvantage +=
+                (
+                PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
+                + pieceValues[(int)piece.PieceType - 1]
+                )
+                * (piece.IsWhite ? 1 : -1); //negates if black
+            //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
+        };
+
+        return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
     }
-
+    /*
     public int CalculateMaterialAdvantageOfCurrentPlayer(Board board)
     {
         PieceList[] pieceListList = board.GetAllPieceLists();
@@ -257,7 +270,7 @@ public class MyBot : IChessBot
 
         return materialAdvantage;
     }
-
+    
     public int CalculatePieceSquareAdvantage(Board board)
     {
         int whiteAdvantage = 0;
@@ -275,5 +288,7 @@ public class MyBot : IChessBot
         }
 
         return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
-    }
+    }*/
+
+
 }
