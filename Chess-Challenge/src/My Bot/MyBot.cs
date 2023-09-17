@@ -266,6 +266,21 @@ public class MyBot : IChessBot
 
     public int CalculateAdvantage(Board board)
     {
+        //coppied from tyrant for now (I DONT THINK MOST OF THIS IS LOGICAL, ITS A FRANKENSTEIN OF 3 DIFFERNET BITS OF CODE AND IM SILLY GOOF)
+        int midGame = 0, endGame = 0, gamePhase = 0, sideToMove = 2, piece, square;
+
+        for(; --sideToMove >= 0; midGame = -midGame, endGame = -endGame)
+            for (piece = 6; --piece >= 0;)
+                for (ulong mask = board.GetPieceBitboard((PieceType)piece + 1, sideToMove > 0); mask != 0;)
+                {
+                    gamePhase += 0x00042110 >> piece * 4 & 0x0F; //THIS IS SOME VODOO SHIT WHAAAA TF TYRANT
+
+                    square = BitboardHelper.ClearAndGetIndexOfLSB(ref mask) ^ 56 * sideToMove;
+                    midGame += Convert.ToInt16(mgPSQT[square * 16 + piece]);
+                    endGame += Convert.ToInt16(egPSQT[square * 16 + piece + 6]);
+
+                }
+        /* --LEGACY 
         int whiteAdvantage = 0;
         ulong bitboard = board.AllPiecesBitboard;
         while (bitboard != 0) //learnt this trick from tyrant <3
@@ -282,8 +297,9 @@ public class MyBot : IChessBot
                 * (piece.IsWhite ? 1 : -1); //negates if black
             //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
         };
+        */
 
-        return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
+        return (midGame * gamePhase + endGame * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24) + 16;
     }
     /*
     public int CalculateMaterialAdvantageOfCurrentPlayer(Board board)
