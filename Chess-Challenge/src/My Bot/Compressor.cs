@@ -82,6 +82,30 @@ public class Compressor
         29,  -1, -20,  -7,  -8,  -4, -38, -29,
         -65,  23,  16, -15, -56, -34,   2,  13,
     };
+
+    sbyte[] egpawnPSTable =
+    {
+          0,   0,   0,   0,   0,   0,   0,   0,
+          13,   8,   8,  10,  13,   0,   2,  -7,
+          4,   7,  -6,   1,   0,  -5,  -1,  -8,
+          13,   9,  -3,  -7,  -7,  -8,   3,  -1,
+          32,  24,  13,   5,  -2,   4,  17,  17,
+          94, 100,  85,  67,  56,  53,  82,  84,
+          127, 127, 127, 127, 127, 127, 127, 127,//these should be higher
+          0,   0,   0,   0,   0,   0,   0,   0,
+    };
+
+    sbyte[] egkingPSTable =
+    {
+        -15,  36,  12, -54,   8, -28,  24,  14,
+         1,   7,  -8, -64, -43, -16,   9,   8,
+         -14, -14, -22, -46, -44, -30, -15, -27,
+         -49,  -1, -27, -39, -46, -44, -33, -51,
+         -17, -20, -12, -27, -30, -25, -14, -36,
+         -9,  24,   2, -16, -20,   6,  22, -22,
+         29,  -1, -20,  -7,  -8,  -4, -38, -29,
+         -65,  23,  16, -15, -56, -34,   2,  13,
+    };
     
      public void PackScoreData()
      {
@@ -95,11 +119,13 @@ public class Compressor
         allScores.Add(rookPSTable);
         allScores.Add(queenPSTable);
         allScores.Add(kingPSTable);
+        allScores.Add(egpawnPSTable);
+        allScores.Add(egkingPSTable);
 
         ulong[] packedData = new ulong[64];
         for (int square  = 0; square < 64; square++)
         {
-            for (int set = 0; set < 6; set++)
+            for (int set = 0; set < 8; set++)
             {
                 sbyte[] thisSet = allScores[set];
                 //packedData[square] = ((ulong)thisSet[square]) << (8 * set);

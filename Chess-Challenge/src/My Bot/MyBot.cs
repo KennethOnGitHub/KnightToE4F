@@ -21,14 +21,14 @@ public class MyBot : IChessBot
 
     public ulong[] compressedTables =
     {
-        266081509807872, 40608714320640, 14255029143040, 222144599154432, 9831464562432, 251680922067968, 27358335200512, 16281800272128,
-        2052256490461, 8765760850943, 272730088862956, 211118966504937, 234234615169009, 263947401105944, 10986427904550, 8803491900906,
-        267124736059878, 266094280439804, 258342015405308, 231992374266614, 234174553133827, 248498219585795, 265046644103457, 251813379633396,
-        228663471305701, 281367167173886, 252853114179835, 239654865079564, 231988516756497, 234182975165190, 245204079219978, 226490419837159,
-        263770735441906, 260472402415885, 269311748018950, 252819394409749, 249585249625367, 254060790105356, 267176896827921, 241900829153001,
-        272627275977210, 27415097457671, 2229527061786, 263917757022495, 259609585734721, 6838346219320, 24392145127705, 257530819128556,
-        32882737723234, 281308010960767, 260563769641021, 273783746405471, 273711019988804, 277322871291518, 239814231328546, 249821819695093,
-        210986525229056, 25289472386816, 17717288427008, 265034711944960, 220156800744704, 244280724987648, 2384227463424, 14487662400768,
+    17366146244650440448, 2594113994079726336, 864705383484278272, 14555856140260597504, 576470583767985920, 16429383121569637376, 1729409615245470976, 1008822598331263232,
+    75718820991656925, 506663723840031743, 17872807851308676332, 13838083924015775209, 15352160939391057905, 17294086516503810584, 649092282722677286, 646556824996277738,
+    17439330781821463014, 17440174176295974908, 16932104091068206332, 15132608215315843830, 15276444110593856259, 16355914969945673987, 17437921328845953313, 16571246642289373428,
+    14919809804019626981, 18377501121629193470, 16572655056907473147, 15706824830296395020, 15202414005682576401, 15346249913240130310, 16069933099467281674, 14843809387256281319,
+    17231035945054959602, 17012608064794464525, 17585981431699673862, 16502849228963460373, 16356760481905845527, 16646684183458301196, 17442990008679469585, 15857697663777380073,
+    17824957002454979066, 1757557169678793735, 168042790623323418, 17312945310299341087, 17021614401232524353, 447270576339451704, 1608372409069816089, 16885378433737960684,
+    2125450431879886690, 18410715109724837759, 17041600078762887229, 17978362021232714847, 17906304354468370244, 18194538342471384702, 15744542636541871906, 16393070990471589877,
+    13763211447769464832, 1657349952344729344, 1152939221895273984, 17366145197852577536, 14411738964386331904, 15997030157144989440, 144117572303319296, 936763210155463936,
     };
 
     public const byte INVALID = 0, EXACT = 1, LOWERBOUND = 2, UPPERBOUND = 3; //this can be refactored to reduce tokens at the cost of readability
@@ -54,16 +54,21 @@ public class MyBot : IChessBot
     ulong transpositionTableMask = 0x7FFFFF; //011111111111111111111111 in binary we will bitwise AND the mask and the zobrist hash to lop off all the digits except for the last 23 (in binary), 
 
     //COMPRESSOR
-    private sbyte[][] PSQT;
+    private sbyte[][] mgPSQT;
+    private sbyte[][] egPSQT;
 
     Transposition[] transpositions;
     public MyBot()
     {
+        var compressor = new Compressor();
+        compressor.PackScoreData();
 
-        PSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
+        mgPSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
+        egPSQT = new sbyte[6][]; //we could instead have the reading process be different, but this might be faster
         for (int pieceType = 0; pieceType < 6; pieceType++)
         {
-            PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
+            mgPSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
+            egPSQT[pieceType] = new sbyte[64];
             for (int square = 0; square < 64; square++)
             {
                 /*
@@ -71,9 +76,34 @@ public class MyBot : IChessBot
                 Console.Write(" |Square: " + square + " | ");
                 Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));*/
 
-                PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+                mgPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+                if (pieceType == 0) //if it's a pawn
+                {
+                    egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * 6)) & 0xFF));
+                }
+                else if (pieceType == 5) //if its a king
+                {
+                    egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * 7)) & 0xFF));
+                }
+                else
+                {
+                    egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+                }
+                
             }
         }
+
+        for (int pieceType = 0; pieceType < 6; pieceType ++)
+        {
+            Console.WriteLine("PIECETYPE:" + pieceType);
+            foreach (sbyte score in egPSQT[pieceType])
+            {
+                Console.WriteLine (score);
+            }
+
+
+        } 
+
 
         transpositions = new Transposition[transpositionTableMask + 1]; // transpositionTableMask + 1 is 100000000000000000000000 in binary
 
@@ -245,7 +275,7 @@ public class MyBot : IChessBot
 
             whiteAdvantage +=
                 (
-                PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                mgPSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
                 [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
                 + pieceValues[(int)piece.PieceType]
                 )
