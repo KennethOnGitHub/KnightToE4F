@@ -246,8 +246,6 @@ public class MyBot : IChessBot
 
     public int CalculatePriorityOfMove(Move move, Board board) //We want probably good moves to be checked first for better pruning
     {
-        board.MakeMove(move);
-
         int priority = 0;
 
         Transposition transP = transpositions[board.ZobristKey & transpositionTableMask];
@@ -258,9 +256,7 @@ public class MyBot : IChessBot
 
         //could transposition depth also be used? mayb
 
-        board.UndoMove(move);
         return priority;
-
         //optimise this in terms of tokens later
     }
 
