@@ -76,7 +76,7 @@ public class MyBot : IChessBot
                 Console.Write(" |Square: " + square + " | ");
                 Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));*/
 
-                mgPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+                mgPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)); //can we not remove this bc it is set in the else condition anyway?
                 if (pieceType == 0) //if it's a pawn
                 {
                     egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * 6)) & 0xFF));
@@ -267,7 +267,6 @@ public class MyBot : IChessBot
     public int CalculateAdvantage(Board board)
     {
         //coppied from tyrant for now (I DONT THINK MOST OF THIS IS LOGICAL, ITS A FRANKENSTEIN OF 3 DIFFERNET BITS OF CODE AND IM SILLY GOOF)
-        int midGame = 0, endGame = 0;
 
         
         int mgWhiteAdvantage = 0, egWhiteAdvantage = 0, gamePhase = 0;
@@ -280,8 +279,8 @@ public class MyBot : IChessBot
 
             egWhiteAdvantage +=
                 (egPSQT[(int)piece.PieceType - 1]
-                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex  % 8]
-                +pieceValues[(int)piece.PieceType])
+                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8]
+                + pieceValues[(int)piece.PieceType])
                 * (piece.IsWhite ? 1 : -1);
 
             mgWhiteAdvantage +=
@@ -293,9 +292,13 @@ public class MyBot : IChessBot
                 * (piece.IsWhite ? 1 : -1); //negates if black
 
             gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
+
+            Console.WriteLine($"this is the gamePhase: {gamePhase}");
+            Console.WriteLine($"this is the midGame: {mgWhiteAdvantage}");
+            Console.WriteLine($"this is the endGame: {egWhiteAdvantage}");
         };
     
-        return (midGame * gamePhase + endGame * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24) + 16; //voodo shit from tyrant :3
+        return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24) + 16; //voodo shit from tyrant :3
         
         
         //return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
