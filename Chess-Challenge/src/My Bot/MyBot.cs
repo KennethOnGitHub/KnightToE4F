@@ -202,7 +202,7 @@ public class MyBot : IChessBot
 
         Move[] allMoves = board.GetLegalMoves();
 
-        allMoves.OrderByDescending(move => CalculatePriorityOfMove(move, board)); //seen array.sort also used, need to see if that is better
+        var sortedMoves = allMoves.OrderByDescending(move => CalculatePriorityOfMove(move, board)); //seen array.sort also used, need to see if that is better
         //also look into not passing board as arg, am too tired to look at the alternative
 
         Move bestMove = allMoves[0];
@@ -210,7 +210,7 @@ public class MyBot : IChessBot
 
         transposition.flag = UPPERBOUND;
 
-        foreach (Move move in allMoves)
+        foreach (Move move in sortedMoves)
         {
             board.MakeMove(move);
             //bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
