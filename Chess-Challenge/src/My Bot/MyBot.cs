@@ -297,8 +297,8 @@ public class MyBot : IChessBot
             Console.WriteLine($"this is the midGame: {mgWhiteAdvantage}");
             Console.WriteLine($"this is the endGame: {egWhiteAdvantage}");
         };
-    
-        return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24) + 16; //voodo shit from tyrant :3
+
+        return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24); //voodo shit from tyrant :3
         
         
         //return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
