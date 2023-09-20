@@ -293,9 +293,9 @@ public class MyBot : IChessBot
 
             gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
 
-            Console.WriteLine("this is the gamePhase: " + gamePhase);
-            Console.WriteLine($"this is the midGame: {mgWhiteAdvantage}");
-            Console.WriteLine($"this is the endGame: {egWhiteAdvantage}");
+            //Console.WriteLine("this is the gamePhase: " + gamePhase);
+            //Console.WriteLine($"this is the midGame: {mgWhiteAdvantage}");
+            //Console.WriteLine($"this is the endGame: {egWhiteAdvantage}");
         };
 
         return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24); //voodo shit from tyrant :3
