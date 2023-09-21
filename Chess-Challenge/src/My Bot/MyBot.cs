@@ -17,8 +17,6 @@ public class MyBot : IChessBot
 {
     int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 }; //do we need that first 0? could be optimised out
 
-    int debug_negaMaxCalledCount = 0;
-
     public ulong[] compressedTables =
     {
     17366146244650440448, 2594113994079726336, 864705383484278272, 14555856140260597504, 576470583767985920, 16429383121569637376, 1729409615245470976, 1008822598331263232,
@@ -97,248 +95,183 @@ public class MyBot : IChessBot
             }
         }
 
-        for (int pieceType = 0; pieceType < 6; pieceType ++)
-        {
-            Console.WriteLine("PIECETYPE:" + pieceType);
-            foreach (sbyte score in egPSQT[pieceType])
-            {
-                Console.WriteLine (score);
-            }
-
-
-        } 
-
 
         transpositions = new Transposition[transpositionTableMask + 1]; // transpositionTableMask + 1 is 100000000000000000000000 in binary
 
     }
 
-
+    bool timeout = false;
     public Move Think(Board board, Timer timer)
     {
-        Console.WriteLine("STARTED THINK");
-        debug_negaMaxCalledCount = 0;
 
-        Move bestMove = IterativeDeepening(board, timer);
-
-        Console.WriteLine("search count: " +  debug_negaMaxCalledCount);
-        return bestMove;
-    }
+        Move bestMove = IterativeDeepening();
 
 
-    bool timeout = false;
-
-    public Move IterativeDeepening(Board board, Timer moveTimer) //tmrw, remove the told temp best move and add move ordering to here as well to resolve the early cutoff problem
-    {
-        Move[] allMoves = board.GetLegalMoves();
-        Move bestMove = allMoves[0];
-
-        int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
-        timeout = false;
-        
-        while (true)
+        Move IterativeDeepening() //tmrw, remove the told temp best move and add move ordering to here as well to resolve the early cutoff problem
         {
-            Console.WriteLine("STARTING SEARCH DEPTH:" + searchDepth);
-            int bestMoveAdvantage = int.MinValue;
-            Move tempBestMove = allMoves[0];   //temp best move so far for this search, but this is may not be the true best move as we have not finished searching yet.
-            
+            Move[] allMoves = board.GetLegalMoves();
+            Move bestMove = allMoves[0];
+
+            int searchDepth = 1; //currently with our implementation we're technically doing a 2ply search since we are evaluating the move after the next move
+        
+            while (true)
+            {
+                int bestMoveAdvantage = int.MinValue;
+                Move tempBestMove = allMoves[0];   //temp best move so far for this search, but this is may not be the true best move as we have not finished searching yet.
+
+                foreach (Move move in allMoves)
+                {
+                    if (timeout)
+                    {
+                        return bestMove; 
+                    }
+                    board.MakeMove(move);
+                    int moveAdvantage = -NegaMax(searchDepth, int.MinValue, int.MaxValue - 1);
+                    board.UndoMove(move);
+                    if (moveAdvantage > bestMoveAdvantage)
+                    {
+                        bestMoveAdvantage = moveAdvantage;
+                        tempBestMove = move;
+                    }
+                }
+                bestMove = tempBestMove; //only once we have finished searching a layer will we update the best move, as we can be sure it is actually better
+                searchDepth++;
+
+            }
+        }
+
+        int NegaMax(int currentDepth, int alpha, int beta)
+        {
+
+            ref Transposition transposition = ref transpositions[board.ZobristKey & transpositionTableMask];
+        
+            if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
+                && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search, so its more accurate
+            {
+                if (transposition.flag == EXACT) return transposition.evaluation;
+
+                //If the value stored is a lower bound, and we have found that it is greater than beta, cut off (or at least I think this is what we are doing)
+                if (transposition.flag == LOWERBOUND && transposition.evaluation >= beta) return transposition.evaluation;
+                if (transposition.flag == UPPERBOUND && transposition.evaluation <= alpha) return transposition.evaluation;
+            }
+
+            int moveTime = timer.MillisecondsRemaining / 30; //arbitary value 
+            if (timer.MillisecondsElapsedThisTurn > moveTime)
+            {
+                timeout = true;
+                return alpha; //is this correct?
+            }
+
+            if (board.IsInCheckmate())
+            {
+                return int.MinValue + 1;
+            }
+            if (board.IsDraw())
+            {
+                return 0;
+            }
+
+            if (currentDepth == 0) //not perfect, this means a search depth of 1 leads to 2ply search
+            {
+                return CalculateAdvantage();
+            }
+
+            Move[] allMoves = board.GetLegalMoves();
+
+            allMoves.OrderByDescending(move => CalculatePriorityOfMove(move)); //seen array.sort also used, need to see if that is better
+            //also look into not passing board as arg, am too tired to look at the alternative
+
+            Move bestMove = allMoves[0];
+            int bestEval = int.MinValue;
+
+            transposition.flag = UPPERBOUND;
+
             foreach (Move move in allMoves)
             {
-                if (timeout)
+                board.MakeMove(move);;
+                int eval = -NegaMax(currentDepth - 1, -beta, -alpha);
+                if (eval > bestEval)
                 {
-                    return bestMove; 
-                }
-                board.MakeMove(move);
-                int moveAdvantage = -NegaMax(board, moveTimer, searchDepth, int.MinValue, int.MaxValue - 1);
+                    bestEval = eval;
+                    bestMove = move;
+                } 
                 board.UndoMove(move);
-                if (moveAdvantage > bestMoveAdvantage)
+
+                if (bestEval > alpha) //look into reworking this to use Max(), but will have to change flags
                 {
-                    Console.WriteLine("FOUND NEW BEST MOVE");
-                    bestMoveAdvantage = moveAdvantage;
-                    tempBestMove = move;
+                    alpha = bestEval;
+                    transposition.flag = EXACT;
+                }
+
+                if (alpha >= beta)
+                {
+                    transposition.flag = LOWERBOUND;
+                    break; //seen some return beta here, idk why though
                 }
             }
-            Console.WriteLine(bestMoveAdvantage);
-            bestMove = tempBestMove; //only once we have finished searching a layer will we update the best move, as we can be sure it is actually better
-            searchDepth++;
 
-        }
-    }
+            transposition.evaluation = bestEval;
+            transposition.zobristHash = board.ZobristKey;
+            transposition.depth = (byte)currentDepth;
+            transposition.bestMove = bestMove;
 
-    public int NegaMax(Board board, Timer moveTimer, int currentDepth, int alpha, int beta)
-    {
-        debug_negaMaxCalledCount += 1;
-
-        ref Transposition transposition = ref transpositions[board.ZobristKey & transpositionTableMask];
-        
-        if (transposition.zobristHash == board.ZobristKey  //checks 2 things, that is has been hashed already (zobristHash is initally set to 0 be default) and that the entry we are getting from the table is hopefully the right transposition
-            && transposition.depth >= currentDepth) //a transposition with a greater depth means it got its eval from a deeper search, so its more accurate
-        {
-            if (transposition.flag == EXACT) return transposition.evaluation;
-
-            //If the value stored is a lower bound, and we have found that it is greater than beta, cut off (or at least I think this is what we are doing)
-            if (transposition.flag == LOWERBOUND && transposition.evaluation >= beta) return transposition.evaluation;
-
-            //I dont fully understand this tbh
-            if (transposition.flag == UPPERBOUND && transposition.evaluation <= alpha) return transposition.evaluation;
+            return bestEval;
         }
 
-        int moveTime = moveTimer.MillisecondsRemaining / 30; //arbitary value 
-        if (moveTimer.MillisecondsElapsedThisTurn > moveTime)
-        {
-            timeout = true;
-            return alpha; //is this correct?
-        }
-
-        if (board.IsInCheckmate())
-        {
-            return int.MinValue + 1;
-        }
-        if (board.IsDraw())
-        {
-            return 0;
-        }
-
-        if (currentDepth == 0) //not perfect, this means a search depth of 1 leads to 2ply search
-        {
-            return CalculateAdvantage(board);
-        }
-
-        Move[] allMoves = board.GetLegalMoves();
-
-        allMoves.OrderByDescending(move => CalculatePriorityOfMove(move, board)); //seen array.sort also used, need to see if that is better
-        //also look into not passing board as arg, am too tired to look at the alternative
-
-        Move bestMove = allMoves[0];
-        int bestEval = int.MinValue;
-
-        transposition.flag = UPPERBOUND;
-
-        foreach (Move move in allMoves)
+        int CalculatePriorityOfMove(Move move) //We want probably good moves to be checked first for better pruning
         {
             board.MakeMove(move);
-            //bestEval = Math.Max(bestEval, -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha));
-            int eval = -NegaMax(board, moveTimer, currentDepth - 1, -beta, -alpha);
-            if (eval > bestEval)
-            {
-                bestEval = eval;
-                bestMove = move;
-            } 
+
+            int priority = 0;
+
+            Transposition transP = transpositions[board.ZobristKey & transpositionTableMask];
+
+            if (transP.bestMove == move && board.ZobristKey == transP.zobristHash)
+                priority = 10000; //rando big number
+            if (move.IsCapture) priority += pieceValues[(int)move.CapturePieceType - 1] - pieceValues[(int)move.MovePieceType - 1]; //seen elseif used instead, not sure
+
+            //could transposition depth also be used? mayb
+
             board.UndoMove(move);
+            return priority;
 
-            if (bestEval > alpha) //look into reworking this to use Max(), but will have to change flags
-            {
-                alpha = bestEval;
-                transposition.flag = EXACT;
-            }
-
-            if (alpha >= beta)
-            {
-                //Console.WriteLine(String.Format("PRUNING | ALPHA: {0} BETA {1}", alpha,beta));
-                transposition.flag = LOWERBOUND;
-                break; //seen some return beta here, idk why though
-            }
+            //optimise this in terms of tokens later
         }
 
-        transposition.evaluation = bestEval;
-        transposition.zobristHash = board.ZobristKey;
-        transposition.depth = (byte)currentDepth;
-        transposition.bestMove = bestMove;
-
-        return bestEval;
-    }
-
-    public int CalculatePriorityOfMove(Move move, Board board) //We want probably good moves to be checked first for better pruning
-    {
-        board.MakeMove(move);
-
-        int priority = 0;
-
-        Transposition transP = transpositions[board.ZobristKey & transpositionTableMask];
-
-        if (transP.bestMove == move && board.ZobristKey == transP.zobristHash)
-            priority = 10000; //rando big number
-        if (move.IsCapture) priority += pieceValues[(int)move.CapturePieceType - 1] - pieceValues[(int)move.MovePieceType - 1]; //seen elseif used instead, not sure
-
-        //could transposition depth also be used? mayb
-
-        board.UndoMove(move);
-        return priority;
-
-        //optimise this in terms of tokens later
-    }
-
-    public int CalculateAdvantage(Board board)
-    {
-        //coppied from tyrant for now (I DONT THINK MOST OF THIS IS LOGICAL, ITS A FRANKENSTEIN OF 3 DIFFERNET BITS OF CODE AND IM SILLY GOOF)
-
-        
-        int mgWhiteAdvantage = 0, egWhiteAdvantage = 0, gamePhase = 0;
         ulong bitboard = board.AllPiecesBitboard;
-
-        while (bitboard != 0) //learnt this trick from tyrant <3
+        int pestoTableAdvantage(sbyte[][] PQST)
         {
+            
+            int advantage = 0;
             int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
             Piece piece = board.GetPiece(new Square(pieceIndex));
+        
+            advantage += 
 
-            egWhiteAdvantage +=
-                (egPSQT[(int)piece.PieceType - 1]
-                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8]
-                + pieceValues[(int)piece.PieceType])
-                * (piece.IsWhite ? 1 : -1);
-
-            mgWhiteAdvantage +=
-                (
-                mgPSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                (PQST[(int)piece.PieceType - 1] //gets the piece square table of the current piece
                 [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
-                + pieceValues[(int)piece.PieceType]
-                )
+                + pieceValues[(int)piece.PieceType])
                 * (piece.IsWhite ? 1 : -1); //negates if black
 
-            gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
-
-            //Console.WriteLine("this is the gamePhase: " + gamePhase);
-            //Console.WriteLine($"this is the midGame: {mgWhiteAdvantage}");
-            //Console.WriteLine($"this is the endGame: {egWhiteAdvantage}");
-        };
-
-        return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24); //voodo shit from tyrant :3
-        
-        
-        //return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
-    }
-    /*
-    public int CalculateMaterialAdvantageOfCurrentPlayer(Board board)
-    {
-        PieceList[] pieceListList = board.GetAllPieceLists();
-        int whiteMaterialValue = pieceListList.Take(6).Sum(list => list.Count * pieceValues[(int)list.TypeOfPieceInList]); //Sums values of first 6 lists (white pieces)
-        int blackMaterialValue = pieceListList.Skip(6).Take(6).Sum(list => list.Count * pieceValues[(int)list.TypeOfPieceInList]); //Sums up next 6 lists (black pieces)
-
-        int whiteMaterialAdvantage = whiteMaterialValue - blackMaterialValue;
-        int blackMaterialAdvantage = blackMaterialValue - whiteMaterialValue;
-        int materialAdvantage = board.IsWhiteToMove ? whiteMaterialAdvantage : blackMaterialAdvantage;
-
-        return materialAdvantage;
-    }
-    
-    public int CalculatePieceSquareAdvantage(Board board)
-    {
-        int whiteAdvantage = 0;
-        ulong bitboard = board.AllPiecesBitboard;
-        while (bitboard != 0) //learnt this trick from tyrant <3
-        {
-            int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
-            Piece piece = board.GetPiece(new Square(pieceIndex));
-
-            whiteAdvantage +=
-                PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
-                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex/8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
-                * (piece.IsWhite ? 1:-1); //negates when black
-            //ISSUE: [piece.IsWhite ? pieceIndex : 63 - pieceIndex] is incorrect, we don't want to just do 63-piece index as this flips both rank and file!!!
+            return advantage;
         }
 
-        return board.IsWhiteToMove ? whiteAdvantage : -whiteAdvantage;
-    }*/
+        int CalculateAdvantage()
+        {
+  
+            int mgWhiteAdvantage = 0, egWhiteAdvantage = 0, gamePhase = 0;
 
+            while (bitboard != 0) //learnt this trick from tyrant <3
+            {
+                egWhiteAdvantage += pestoTableAdvantage(mgPSQT);
+                mgWhiteAdvantage += pestoTableAdvantage(egPSQT);
 
+                gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
+            };
+
+            return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24); //voodo shit from tyrant :3
+        }
+
+        return bestMove;
+    }
 }
