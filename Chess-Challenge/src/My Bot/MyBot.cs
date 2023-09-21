@@ -76,19 +76,23 @@ public class MyBot : IChessBot
                 Console.Write(" |Square: " + square + " | ");
                 Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));*/
 
-                mgPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)); //can we not remove this bc it is set in the else condition anyway?
-                if (pieceType == 0) //if it's a pawn
+                mgPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+
+                int egTableIndex = 0;
+                if (pieceType == 0)
                 {
-                    egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * 6)) & 0xFF));
+                    egTableIndex = 6;
                 }
-                else if (pieceType == 5) //if its a king
+                else if (pieceType == 5)
                 {
-                    egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * 7)) & 0xFF));
+                    egTableIndex = 7;
                 }
                 else
                 {
-                    egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+                    egTableIndex = pieceType;
                 }
+
+                egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * egTableIndex)) & 0xFF));
                 
             }
         }
