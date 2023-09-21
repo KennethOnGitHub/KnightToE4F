@@ -52,8 +52,7 @@ public class MyBot : IChessBot
     ulong transpositionTableMask = 0x7FFFFF; //011111111111111111111111 in binary we will bitwise AND the mask and the zobrist hash to lop off all the digits except for the last 23 (in binary), 
 
     //COMPRESSOR
-    private sbyte[][] mgPSQT;
-    private sbyte[][] egPSQT;
+    private sbyte[][] PSQT;
 
     Transposition[] transpositions;
     public MyBot()
@@ -61,12 +60,10 @@ public class MyBot : IChessBot
         var compressor = new Compressor();
         compressor.PackScoreData();
 
-        mgPSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
-        egPSQT = new sbyte[6][]; //we could instead have the reading process be different, but this might be faster
+        PSQT = new sbyte[12][];
         for (int pieceType = 0; pieceType < 6; pieceType++)
         {
-            mgPSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
-            egPSQT[pieceType] = new sbyte[64];
+            PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
             for (int square = 0; square < 64; square++)
             {
                 /*
@@ -74,23 +71,23 @@ public class MyBot : IChessBot
                 Console.Write(" |Square: " + square + " | ");
                 Console.WriteLine(unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF)));*/
 
-                mgPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
+                PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * pieceType)) & 0xFF));
 
                 int egTableIndex = 0;
-                if (pieceType == 0)
+                if (pieceType + 6 == 0)
                 {
                     egTableIndex = 6;
                 }
-                else if (pieceType == 5)
+                else if (pieceType + 6 == 5)
                 {
                     egTableIndex = 7;
                 }
                 else
                 {
-                    egTableIndex = pieceType;
+                    egTableIndex = pieceType + 6;
                 }
 
-                egPSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * egTableIndex)) & 0xFF));
+                PSQT[pieceType][square] = unchecked((sbyte)((compressedTables[square] >> (8 * egTableIndex)) & 0xFF)); //bababooie
                 
             }
         }
@@ -238,38 +235,32 @@ public class MyBot : IChessBot
             //optimise this in terms of tokens later
         }
 
-        int pestoTableAdvantage(sbyte[][] PQST, ulong bitboard, Piece piece, int pieceIndex)
-        {
-            
-            int advantage = 0;
-
-            advantage += 
-
-                (PQST[(int)piece.PieceType - 1] //gets the piece square table of the current piece
-                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
-                + pieceValues[(int)piece.PieceType])
-                * (piece.IsWhite ? 1 : -1); //negates if black
-
-            return advantage;
-        }
-
         int CalculateAdvantage()
         {
             ulong bitboard = board.AllPiecesBitboard;
             int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
             Piece piece = board.GetPiece(new Square(pieceIndex));
 
-            int mgWhiteAdvantage = 0, egWhiteAdvantage = 0, gamePhase = 0;
+            int WhiteAdvantage = 0, gamePhase = 0;
 
             while (bitboard != 0) //learnt this trick from tyrant <3
             {
-                egWhiteAdvantage += pestoTableAdvantage(mgPSQT, bitboard, piece, pieceIndex);
-                mgWhiteAdvantage += pestoTableAdvantage(egPSQT, bitboard, piece, pieceIndex);
+                WhiteAdvantage +=
+                //THIS SHIT CRINGE AS HELLLL WHERE MY OPTIMISATION A
+                (PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
+                + pieceValues[(int)piece.PieceType])
+                * (piece.IsWhite ? 1 : -1) //negates if black
+            +
+                (PSQT[(int)piece.PieceType + 8]
+                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8]
+                + pieceValues[(int)piece.PieceType])
+                * (piece.IsWhite ? 1 : -1);
 
                 gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
             };
 
-            return (mgWhiteAdvantage * gamePhase + egWhiteAdvantage * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24); //voodo shit from tyrant :3
+            return (WhiteAdvantage * gamePhase * (24 - gamePhase)) / (board.IsWhiteToMove ? 24 : -24); //this is also different now PQST is one jagged array, as now its not "mgAdv * gamePhase + egAdv", its just "Adv * gamePhase"
         }
 
         return bestMove;
