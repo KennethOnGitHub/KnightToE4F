@@ -61,7 +61,7 @@ public class MyBot : IChessBot
         compressor.PackScoreData();
 
         PSQT = new sbyte[12][];
-        for (int pieceType = 0; pieceType < 6; pieceType++)
+        for (int pieceType = 0; pieceType < 12; pieceType++)
         {
             PSQT[pieceType] = new sbyte[64]; //don't like this but this is how you do jagged arrays :/
             for (int square = 0; square < 64; square++)
@@ -247,16 +247,17 @@ public class MyBot : IChessBot
             {
                 WhiteAdvantage +=
                 //THIS SHIT CRINGE AS HELLLL WHERE MY OPTIMISATION A
-                (PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                ((PSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
                 [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
                 + pieceValues[(int)piece.PieceType])
-                * (piece.IsWhite ? 1 : -1) //negates if black
             +
-                (PSQT[(int)piece.PieceType + 8]
+                (PSQT[(int)piece.PieceType + 6]
                 [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8]
-                + pieceValues[(int)piece.PieceType])
-                * (piece.IsWhite ? 1 : -1);
+                + pieceValues[(int)piece.PieceType]))
 
+            * (piece.IsWhite ? 1 : -1); //negates if black
+
+                Console.WriteLine("adv" + WhiteAdvantage);
                 gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
             };
 
