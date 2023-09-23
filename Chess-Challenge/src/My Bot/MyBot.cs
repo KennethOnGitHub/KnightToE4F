@@ -1,16 +1,6 @@
 ﻿using ChessChallenge.API;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.ExceptionServices;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks.Sources;
-using System.Xml.Linq;
+
 
 
 public class MyBot : IChessBot
@@ -58,8 +48,6 @@ public class MyBot : IChessBot
     Transposition[] transpositions;
     public MyBot()
     {
-        var compressor = new Compressor();
-        compressor.PackScoreData();
 
         mgPSQT = new sbyte[6][];//this can be changed in the future, we don't have to stick to a jagged array of 1d arrays
         egPSQT = new sbyte[6][]; //we could instead have the reading process be different, but this might be faster
