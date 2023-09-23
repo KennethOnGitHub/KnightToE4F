@@ -103,7 +103,7 @@ public class MyBot : IChessBot
     bool timeout = false;
     public Move Think(Board board, Timer timer)
     {
-
+        timeout = false;
         Move bestMove = IterativeDeepening();
 
 
@@ -220,7 +220,6 @@ public class MyBot : IChessBot
 
         int CalculatePriorityOfMove(Move move) //We want probably good moves to be checked first for better pruning
         {
-            board.MakeMove(move);
 
             int priority = 0;
 
@@ -232,30 +231,10 @@ public class MyBot : IChessBot
 
             //could transposition depth also be used? mayb
 
-            board.UndoMove(move);
             return priority;
 
             //optimise this in terms of tokens later
         }
-
-        /*
-        ulong bitboard = board.AllPiecesBitboard;
-        int pestoTableAdvantage(sbyte[][] PQST)
-        {
-            
-            int advantage = 0;
-            int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
-            Piece piece = board.GetPiece(new Square(pieceIndex));
-        
-            advantage += 
-
-                (PQST[(int)piece.PieceType - 1] //gets the piece square table of the current piece
-                [piece.IsWhite ? pieceIndex : 56 - ((pieceIndex / 8) * 8) + pieceIndex % 8] //gets the square of that piece, flips rank if black
-                + pieceValues[(int)piece.PieceType])
-                * (piece.IsWhite ? 1 : -1); //negates if black
-
-            return advantage;
-        }*/
 
         int CalculateAdvantage()
         {
