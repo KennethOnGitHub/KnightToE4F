@@ -238,6 +238,7 @@ public class MyBot : IChessBot
             //optimise this in terms of tokens later
         }
 
+        /*
         ulong bitboard = board.AllPiecesBitboard;
         int pestoTableAdvantage(sbyte[][] PQST)
         {
@@ -254,17 +255,33 @@ public class MyBot : IChessBot
                 * (piece.IsWhite ? 1 : -1); //negates if black
 
             return advantage;
-        }
+        }*/
 
         int CalculateAdvantage()
         {
   
             int mgWhiteAdvantage = 0, egWhiteAdvantage = 0, gamePhase = 0;
+            ulong bitboard = board.AllPiecesBitboard;
+
 
             while (bitboard != 0) //learnt this trick from tyrant <3
             {
-                egWhiteAdvantage += pestoTableAdvantage(mgPSQT);
-                mgWhiteAdvantage += pestoTableAdvantage(egPSQT);
+
+            int pieceIndex = BitboardHelper.ClearAndGetIndexOfLSB(ref bitboard);
+            Piece piece = board.GetPiece(new Square(pieceIndex));
+
+                egWhiteAdvantage += 
+                (egPSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                [pieceIndex ^ 56 * (piece.IsWhite ? 0 : 1)] //gets the square of that piece, flips rank if black
+                + pieceValues[(int)piece.PieceType])
+                * (piece.IsWhite ? 1 : -1); //negates if black
+
+
+                mgWhiteAdvantage +=  
+                (egPSQT[(int)piece.PieceType - 1] //gets the piece square table of the current piece
+                [pieceIndex ^ 56 * (piece.IsWhite ? 0 : 1)] //gets the square of that piece, flips rank if black
+                + pieceValues[(int)piece.PieceType])
+                * (piece.IsWhite ? 1 : -1); //negates if black;
 
                 gamePhase += 0x00042110 >> ((int)piece.PieceType - 1) * 4 & 0x0F; //thanks bbg tyrant :*
             };
