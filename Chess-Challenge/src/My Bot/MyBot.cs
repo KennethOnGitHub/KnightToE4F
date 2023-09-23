@@ -259,7 +259,7 @@ public class MyBot : IChessBot
 
         int CalculateAdvantage()
         {
-  
+
             int mgWhiteAdvantage = 0, egWhiteAdvantage = 0, gamePhase = 0;
             ulong bitboard = board.AllPiecesBitboard;
 
